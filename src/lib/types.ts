@@ -1,7 +1,7 @@
 export type BookStatus = 'reading' | 'completed' | 'want_to_read';
 
 /**
- * Matches a future PostgreSQL `books` table schema.
+ * Maps directly to a future PostgreSQL `books` table.
  */
 export interface Book {
 	id: string; // uuid
@@ -10,14 +10,14 @@ export interface Book {
 	totalPages: number;
 	currentPage: number;
 	status: BookStatus;
-	coverColor?: string; // clean hex or tailwind tint for cover placeholder
+	coverColor?: string; // Hex tint fallback
 	genre?: string;
-	createdAt: string; // ISO 8601 timestamp
-	updatedAt: string; // ISO 8601 timestamp
+	createdAt: string; // ISO 8601
+	updatedAt: string; // ISO 8601
 }
 
 /**
- * Matches a future PostgreSQL `reading_sessions` table schema.
+ * Maps directly to a future PostgreSQL `reading_sessions` table.
  */
 export interface ReadingSession {
 	id: string; // uuid
@@ -26,12 +26,12 @@ export interface ReadingSession {
 	minutesRead?: number | null;
 	notes?: string | null;
 	xpEarned: number;
-	loggedAt: string; // ISO 8601 date string (e.g. 2026-10-26)
-	createdAt: string; // ISO 8601 timestamp
+	loggedAt: string; // YYYY-MM-DD
+	createdAt: string; // ISO 8601
 }
 
 /**
- * Matches a future PostgreSQL `daily_goals` table schema.
+ * Maps directly to a future PostgreSQL `daily_goals` table.
  */
 export interface DailyGoal {
 	id: string; // uuid
@@ -42,7 +42,7 @@ export interface DailyGoal {
 }
 
 /**
- * Matches a future PostgreSQL `user_stats` table schema.
+ * Maps directly to a future PostgreSQL `user_stats` table.
  */
 export interface UserStats {
 	id: string; // uuid
@@ -50,26 +50,48 @@ export interface UserStats {
 	lastReadDate: string | null; // YYYY-MM-DD
 	totalXp: number;
 	currentLevel: number;
-	xpToNextLevel: number; // XP threshold for next level tier
+	xpToNextLevel: number;
 	todayPagesRead: number;
 	createdAt: string;
 	updatedAt: string;
 }
 
 /**
- * Day status for the weekly habit strip.
+ * Represents a single day in the 7-day habit strip.
  */
 export interface WeekDayLog {
 	date: string; // YYYY-MM-DD
-	dayLabel: string; // e.g. 'M', 'T', 'W'
-	dayName: string; // e.g. 'Mon', 'Tue'
+	dayLabel: string; // 'M', 'T', 'W', etc.
+	dayName: string; // 'Mon', 'Tue', etc.
 	pagesRead: number;
 	hasLogged: boolean;
 	isToday: boolean;
 }
 
 /**
- * Payload for logging a new session.
+ * Reading achievement badges.
+ */
+export interface Badge {
+	id: string;
+	title: string;
+	description: string;
+	icon: 'flame' | 'book' | 'pages' | 'target' | 'star';
+	isUnlocked: boolean;
+	unlockedAt?: string;
+}
+
+/**
+ * AI-generated weekly reading plan preview for desktop companion panel.
+ */
+export interface WeeklyPlanPreview {
+	targetPagesPerDay: number;
+	recommendedBookTitle: string;
+	rationale: string;
+	projectedWeeklyPages: number;
+}
+
+/**
+ * Payload sent when logging a session.
  */
 export interface LogSessionInput {
 	bookId: string;
@@ -79,7 +101,7 @@ export interface LogSessionInput {
 }
 
 /**
- * Result returned after logging a session.
+ * Mutation result returned to the client.
  */
 export interface LogSessionResult {
 	session: ReadingSession;
@@ -88,4 +110,5 @@ export interface LogSessionResult {
 	totalXp: number;
 	currentLevel: number;
 	bookUpdated: Book;
+	isGoalNewlyMet: boolean;
 }

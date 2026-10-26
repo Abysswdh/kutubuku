@@ -1,14 +1,16 @@
 import type {
+	Badge,
 	Book,
 	DailyGoal,
 	LogSessionInput,
 	LogSessionResult,
 	ReadingSession,
 	UserStats,
-	WeekDayLog
+	WeekDayLog,
+	WeeklyPlanPreview
 } from '$lib/types';
 
-// In-memory data store (resets on server restart / page hard refresh; no localStorage)
+// In-memory data store (resets on server restart; no localStorage)
 let books: Book[] = [
 	{
 		id: 'book-1',
@@ -29,7 +31,7 @@ let books: Book[] = [
 		totalPages: 296,
 		currentPage: 296,
 		status: 'completed',
-		coverColor: '#334155',
+		coverColor: '#1e293b',
 		genre: 'Productivity',
 		createdAt: '2026-09-15T10:00:00Z',
 		updatedAt: '2026-10-20T14:30:00Z'
@@ -41,7 +43,7 @@ let books: Book[] = [
 		totalPages: 303,
 		currentPage: 0,
 		status: 'want_to_read',
-		coverColor: '#7c3aed',
+		coverColor: '#6b21a8',
 		genre: 'Fiction',
 		createdAt: '2026-10-18T19:00:00Z',
 		updatedAt: '2026-10-18T19:00:00Z'
@@ -121,7 +123,6 @@ let sessions: ReadingSession[] = [
 	}
 ];
 
-// 7-day strip (Mon - Sun)
 let weekLogs: WeekDayLog[] = [
 	{ date: '2026-10-20', dayLabel: 'M', dayName: 'Mon', pagesRead: 22, hasLogged: true, isToday: false },
 	{ date: '2026-10-21', dayLabel: 'T', dayName: 'Tue', pagesRead: 0, hasLogged: false, isToday: false },
@@ -132,7 +133,55 @@ let weekLogs: WeekDayLog[] = [
 	{ date: '2026-10-26', dayLabel: 'S', dayName: 'Sun', pagesRead: 18, hasLogged: true, isToday: true }
 ];
 
-// --- Query Functions (matching what future PostgreSQL API or load functions will call) ---
+let badges: Badge[] = [
+	{
+		id: 'badge-1',
+		title: '3-Day Streak',
+		description: 'Maintained 3 consecutive days of reading',
+		icon: 'flame',
+		isUnlocked: true,
+		unlockedAt: '2026-10-24'
+	},
+	{
+		id: 'badge-2',
+		title: '100 Pages Read',
+		description: 'Crossed your first century of pages read',
+		icon: 'pages',
+		isUnlocked: true,
+		unlockedAt: '2026-10-25'
+	},
+	{
+		id: 'badge-3',
+		title: 'First Book Finished',
+		description: 'Completed your first book cover to cover',
+		icon: 'book',
+		isUnlocked: true,
+		unlockedAt: '2026-10-20'
+	},
+	{
+		id: 'badge-4',
+		title: '7-Day Master',
+		description: 'Complete a full 7-day uninterrupted streak',
+		icon: 'target',
+		isUnlocked: false
+	},
+	{
+		id: 'badge-5',
+		title: '500 XP Explorer',
+		description: 'Earn 500 total XP from consistent reading',
+		icon: 'star',
+		isUnlocked: false
+	}
+];
+
+let weeklyPlan: WeeklyPlanPreview = {
+	targetPagesPerDay: 28,
+	recommendedBookTitle: 'Atomic Habits',
+	rationale: 'Based on your 22-min average sessions last week, pacing 28 pages/day finishes Chapter 10 comfortably.',
+	projectedWeeklyPages: 196
+};
+
+// --- Query functions ---
 
 export function getBooks(): Book[] {
 	return [...books];
@@ -166,7 +215,15 @@ export function getWeekDays(): WeekDayLog[] {
 	return [...weekLogs];
 }
 
-// --- Mutation Functions (in-memory state updates) ---
+export function getBadges(): Badge[] {
+	return [...badges];
+}
+
+export function getWeeklyPlan(): WeeklyPlanPreview {
+	return { ...weeklyPlan };
+}
+
+// --- Mutation function ---
 
 export function logReadingSession(input: LogSessionInput): LogSessionResult {
 	const book = books.find((b) => b.id === input.bookId);
@@ -177,13 +234,13 @@ export function logReadingSession(input: LogSessionInput): LogSessionResult {
 	const safePages = Math.max(1, Math.round(input.pagesRead));
 	const safeMinutes = input.minutesRead ? Math.max(1, Math.round(input.minutesRead)) : null;
 
-	// Calculate XP: 10 base XP + 1 XP per page + 20 bonus if daily goal completed
 	const wasGoalMet = userStats.todayPagesRead >= dailyGoal.targetPages;
 	const isGoalMetNow = userStats.todayPagesRead + safePages >= dailyGoal.targetPages;
-	const goalBonus = !wasGoalMet && isGoalMetNow ? 20 : 0;
+	const isGoalNewlyMet = !wasGoalMet && isGoalMetNow;
+	const goalBonus = isGoalNewlyMet ? 20 : 0;
 	const xpEarned = 10 + safePages + goalBonus;
 
-	// Update Book progress
+	// Update Book
 	book.currentPage = Math.min(book.totalPages, book.currentPage + safePages);
 	if (book.currentPage >= book.totalPages) {
 		book.status = 'completed';
@@ -193,14 +250,21 @@ export function logReadingSession(input: LogSessionInput): LogSessionResult {
 	// Update User Stats
 	userStats.todayPagesRead += safePages;
 	userStats.totalXp += xpEarned;
-
-	// Level up threshold: every 200 XP = 1 level
 	const newLevel = Math.floor(userStats.totalXp / 200) + 1;
 	userStats.currentLevel = newLevel;
 	userStats.xpToNextLevel = newLevel * 200;
 	userStats.updatedAt = new Date().toISOString();
 
-	// Update today's entry in weekly habits
+	// Check if 500 XP badge unlocked
+	if (userStats.totalXp >= 500) {
+		const badge500 = badges.find((b) => b.id === 'badge-5');
+		if (badge500) {
+			badge500.isUnlocked = true;
+			badge500.unlockedAt = new Date().toISOString().split('T')[0];
+		}
+	}
+
+	// Update week logs
 	const todayEntry = weekLogs.find((w) => w.isToday);
 	if (todayEntry) {
 		todayEntry.pagesRead += safePages;
@@ -227,6 +291,7 @@ export function logReadingSession(input: LogSessionInput): LogSessionResult {
 		newStreak: userStats.streakDays,
 		totalXp: userStats.totalXp,
 		currentLevel: userStats.currentLevel,
-		bookUpdated: { ...book }
+		bookUpdated: { ...book },
+		isGoalNewlyMet
 	};
 }

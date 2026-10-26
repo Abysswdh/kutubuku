@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import BookCover from '$lib/components/BookCover.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import { logReadingSession } from '$lib/data/mock';
 	import type { PageProps } from './$types';
@@ -16,11 +17,18 @@
 	let notes = $state('');
 	let isSubmitting = $state(false);
 
+	// Toggle to view all vs only the 3 most recent sessions
+	let showAllSessions = $state(false);
+	let displayedSessions = $derived(
+		showAllSessions ? sessions : sessions.slice(0, 3)
+	);
+
 	// XP Toast Feedback State
 	let xpMessage = $state<{
 		xp: number;
 		streak: number;
 		pages: number;
+		isGoalMet: boolean;
 	} | null>(null);
 
 	let messageTimer: ReturnType<typeof setTimeout> | null = null;
@@ -48,17 +56,17 @@
 				notes: notes.trim() || undefined
 			});
 
-			// Re-run load functions to update reactive page data
+			// Re-run SvelteKit load functions
 			await invalidateAll();
 
-			// Show XP gain feedback notification
+			// Show XP gain toast with reward styling
 			xpMessage = {
 				xp: result.xpEarned,
 				streak: result.newStreak,
-				pages: result.session.pagesRead
+				pages: result.session.pagesRead,
+				isGoalMet: result.isGoalNewlyMet
 			};
 
-			// Reset optional note field; retain a sensible default for next session
 			notes = '';
 
 			if (messageTimer) clearTimeout(messageTimer);
@@ -71,7 +79,7 @@
 	}
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6 pb-12">
 	<!-- Top Navigation / Back Button -->
 	<div class="flex items-center justify-between">
 		<a
@@ -95,54 +103,42 @@
 			<span>Dashboard</span>
 		</a>
 
-		<span class="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+		<span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
 			Book Details
 		</span>
 	</div>
 
-	<!-- Book Header Card -->
+	<!-- Book Header Card with Generated Genre-Based Cover -->
 	<header
-		class="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs"
+		class="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-xs"
 		aria-labelledby="book-title"
 	>
 		<div class="flex items-start gap-4">
-			<!-- Cover Placeholder -->
-			<div
-				class="flex h-24 w-16 shrink-0 flex-col items-center justify-between rounded-xl p-2 text-white shadow-2xs"
-				style="background-color: {book.coverColor || 'var(--color-accent)'};"
-				aria-hidden="true"
-			>
-				<span class="text-[9px] font-bold tracking-wider uppercase opacity-80">Book</span>
-				<svg
-					class="h-7 w-7 opacity-90"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-					<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-				</svg>
-				<span class="text-[9px] font-semibold opacity-90">{progressPercent}%</span>
-			</div>
+			<!-- Generated Book Cover -->
+			<BookCover
+				title={book.title}
+				author={book.author}
+				genre={book.genre}
+				size="md"
+			/>
 
-			<!-- Title and Metadata -->
-			<div class="flex min-w-0 flex-1 flex-col">
-				<span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-					{book.genre || 'Reading'}
-				</span>
-				<h1 id="book-title" class="text-lg font-black tracking-tight text-zinc-900 truncate">
-					{book.title}
-				</h1>
-				<p class="text-xs text-zinc-600 truncate">{book.author}</p>
+			<!-- Title, Author, Progress -->
+			<div class="flex min-w-0 flex-1 flex-col justify-between self-stretch">
+				<div>
+					<span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+						{book.genre || 'Reading'}
+					</span>
+					<h1 id="book-title" class="mt-0.5 text-lg font-black tracking-tight text-zinc-900 truncate">
+						{book.title}
+					</h1>
+					<p class="text-xs text-zinc-500 truncate">{book.author}</p>
+				</div>
 
-				<div class="mt-3">
+				<div class="mt-4">
 					<ProgressBar
 						value={book.currentPage}
 						max={book.totalPages}
-						sublabel="{book.currentPage} / {book.totalPages} pages"
+						sublabel="Page {book.currentPage} of {book.totalPages}"
 						showPercentage={true}
 						heightClass="h-2"
 					/>
@@ -151,17 +147,19 @@
 		</div>
 	</header>
 
-	<!-- XP Notification Banner (shown after saving a session) -->
+	<!-- Reward XP Notification Toast (Appears upon saving) -->
 	{#if xpMessage}
 		<div
 			in:fly={{ y: -8, duration: 250 }}
 			out:fade={{ duration: 150 }}
 			role="status"
 			aria-live="polite"
-			class="flex items-center justify-between rounded-2xl border border-accent/30 bg-accent-subtle px-4 py-3 text-accent"
+			class="flex items-center justify-between rounded-2xl border border-reward-muted bg-reward-subtle px-4 py-3 text-reward shadow-xs"
 		>
-			<div class="flex items-center gap-2.5">
-				<div class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-white">
+			<div class="flex items-center gap-3">
+				<div
+					class="flex h-8 w-8 items-center justify-center rounded-xl bg-reward text-white shadow-2xs"
+				>
 					<svg
 						class="h-4 w-4"
 						viewBox="0 0 24 24"
@@ -176,11 +174,14 @@
 					</svg>
 				</div>
 				<div>
-					<p class="text-xs font-bold text-accent-text">
-						+{xpMessage.xp} XP Gained!
+					<p class="text-xs font-black text-reward-text">
+						+{xpMessage.xp} XP Earned!
 					</p>
-					<p class="text-[11px] text-accent">
+					<p class="text-[11px] text-zinc-600">
 						Logged {xpMessage.pages} pages • Streak maintained at {xpMessage.streak} days
+						{#if xpMessage.isGoalMet}
+							<span class="font-bold text-reward-text">• Daily goal completed!</span>
+						{/if}
 					</p>
 				</div>
 			</div>
@@ -188,8 +189,8 @@
 			<button
 				type="button"
 				onclick={() => (xpMessage = null)}
-				class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-accent hover:opacity-75"
-				aria-label="Dismiss message"
+				class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-reward-text hover:opacity-70"
+				aria-label="Dismiss notification"
 			>
 				<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
 					<line x1="18" y1="6" x2="6" y2="18" />
@@ -202,26 +203,26 @@
 	<!-- Log Session Form -->
 	<section
 		aria-labelledby="log-form-title"
-		class="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs"
+		class="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-xs"
 	>
-		<div class="mb-4">
-			<h2 id="log-form-title" class="text-sm font-bold tracking-tight text-zinc-900">
-				Log Today's Reading
+		<div class="mb-5">
+			<h2 id="log-form-title" class="text-base font-bold tracking-tight text-zinc-900">
+				Log Reading Session
 			</h2>
-			<p class="text-xs text-zinc-500">
-				Record what you read to gain XP and keep your streak alive.
+			<p class="text-xs text-zinc-500 mt-0.5">
+				Track pages read today to gain XP and maintain your habit streak.
 			</p>
 		</div>
 
-		<form onsubmit={handleSaveSession} class="space-y-4">
+		<form onsubmit={handleSaveSession} class="space-y-5">
 			<!-- Stepper: Pages Read -->
 			<div>
-				<label for="pages-read" class="block text-xs font-semibold text-zinc-700">
+				<label for="pages-read" class="block text-xs font-bold text-zinc-700">
 					Pages Read
 				</label>
 
-				<div class="mt-1.5 flex items-center gap-2">
-					<!-- Decrement Button -->
+				<div class="mt-2 flex items-center gap-2">
+					<!-- Decrement Button (>= 44px) -->
 					<button
 						type="button"
 						onclick={() => incrementPages(-1)}
@@ -245,7 +246,7 @@
 						/>
 					</div>
 
-					<!-- Increment Button -->
+					<!-- Increment Button (>= 44px) -->
 					<button
 						type="button"
 						onclick={() => incrementPages(1)}
@@ -257,13 +258,13 @@
 				</div>
 
 				<!-- Quick Presets -->
-				<div class="mt-2 flex items-center gap-2">
-					<span class="text-[11px] text-zinc-500">Quick add:</span>
+				<div class="mt-2.5 flex items-center gap-2">
+					<span class="text-xs text-zinc-400">Quick add:</span>
 					{#each [5, 10, 20] as preset}
 						<button
 							type="button"
 							onclick={() => incrementPages(preset)}
-							class="flex min-h-[32px] items-center rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
+							class="flex min-h-[36px] items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
 						>
 							+{preset}
 						</button>
@@ -273,8 +274,8 @@
 
 			<!-- Optional Minutes Read -->
 			<div>
-				<label for="minutes-read" class="block text-xs font-semibold text-zinc-700">
-					Minutes Read <span class="font-normal text-zinc-400">(optional)</span>
+				<label for="minutes-read" class="block text-xs font-bold text-zinc-700">
+					Minutes Spent <span class="font-normal text-zinc-400">(optional)</span>
 				</label>
 				<input
 					id="minutes-read"
@@ -282,32 +283,32 @@
 					min="1"
 					placeholder="e.g. 25"
 					bind:value={minutesRead}
-					class="mt-1.5 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-accent focus:outline-hidden"
+					class="mt-1.5 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-accent focus:outline-hidden"
 				/>
 			</div>
 
 			<!-- Optional Short Note -->
 			<div>
-				<label for="session-notes" class="block text-xs font-semibold text-zinc-700">
-					Notes or Key Takeaway <span class="font-normal text-zinc-400">(optional)</span>
+				<label for="session-notes" class="block text-xs font-bold text-zinc-700">
+					Notes & Takeaways <span class="font-normal text-zinc-400">(optional)</span>
 				</label>
 				<textarea
 					id="session-notes"
 					rows="2"
-					placeholder="What stood out in this chapter?"
+					placeholder="What stood out or what quote resonated?"
 					bind:value={notes}
 					class="mt-1.5 w-full resize-none rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-accent focus:outline-hidden"
 				></textarea>
 			</div>
 
-			<!-- Save Button (min 44px) -->
+			<!-- Clearly Dominant Save Action Button -->
 			<button
 				type="submit"
 				disabled={isSubmitting}
-				class="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-accent-hover active:bg-accent-text disabled:opacity-50"
+				class="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-bold text-white shadow-xs transition-colors hover:bg-accent-hover active:bg-accent-text disabled:opacity-50"
 			>
 				{#if isSubmitting}
-					<span class="text-xs">Saving...</span>
+					<span class="text-xs">Saving session...</span>
 				{:else}
 					<svg
 						class="h-4 w-4"
@@ -327,12 +328,22 @@
 		</form>
 	</section>
 
-	<!-- Recent Sessions for this Book -->
+	<!-- Recent Sessions for this Book: Only 3 most recent shown with "View all" link -->
 	<section aria-labelledby="history-heading" class="space-y-3">
 		<div class="flex items-center justify-between px-1">
 			<h2 id="history-heading" class="text-xs font-bold tracking-wider text-zinc-700 uppercase">
 				Recent Sessions ({sessions.length})
 			</h2>
+
+			{#if sessions.length > 3}
+				<button
+					type="button"
+					onclick={() => (showAllSessions = !showAllSessions)}
+					class="text-xs font-semibold text-accent hover:underline"
+				>
+					{showAllSessions ? 'Show 3 recent' : `View all (${sessions.length})`}
+				</button>
+			{/if}
 		</div>
 
 		{#if sessions.length === 0}
@@ -343,27 +354,27 @@
 			</div>
 		{:else}
 			<ul class="space-y-2.5" role="list">
-				{#each sessions as session (session.id)}
-					<li class="rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-xs">
+				{#each displayedSessions as session (session.id)}
+					<li class="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-2">
-								<span class="text-xs font-bold text-zinc-900">
+								<span class="text-sm font-bold text-zinc-900">
 									+{session.pagesRead} pages
 								</span>
 								{#if session.minutesRead}
-									<span class="text-[11px] text-zinc-400">· {session.minutesRead} min</span>
+									<span class="text-xs text-zinc-400">· {session.minutesRead} min</span>
 								{/if}
 							</div>
 
 							<div class="flex items-center gap-2">
 								<span
-									class="rounded-md bg-accent-subtle px-1.5 py-0.5 text-[10px] font-bold text-accent"
+									class="rounded-md bg-reward-subtle px-2 py-0.5 text-[10px] font-bold text-reward border border-reward-muted"
 								>
 									+{session.xpEarned} XP
 								</span>
 								<time
 									datetime={session.loggedAt}
-									class="text-[11px] font-medium text-zinc-500"
+									class="text-xs font-medium text-zinc-400"
 								>
 									{session.loggedAt}
 								</time>

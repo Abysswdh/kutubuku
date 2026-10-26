@@ -21,9 +21,9 @@
 	class="min-h-dvh bg-zinc-50 text-zinc-900 antialiased selection:bg-accent-muted selection:text-accent-text"
 >
 	<!-- Duolingo-style centered layout: centered column on all devices -->
-	<div class="mx-auto flex w-full justify-center px-4 pt-4 sm:pt-6 lg:gap-8">
-		<!-- Main Content Column (Max width constrained, never stretches full laptop screen) -->
-		<main class="relative w-full max-w-md pb-28">
+	<div class="mx-auto flex w-full justify-center px-4 pt-4 sm:pt-6 xl:gap-10">
+		<!-- Main Content Column: centered max-w-md, with safe bottom padding for fixed nav -->
+		<main class="relative w-full max-w-md pb-36">
 			{@render children()}
 
 			<!-- Bottom navigation sits strictly inside the centered column width -->
@@ -31,12 +31,17 @@
 		</main>
 
 		<!-- 
-			OPTIONAL: Desktop companion panel on lg screens.
-			To remove: simply delete or comment out this <aside> block.
-			The main column remains perfectly centered with max-w-md.
+			DESKTOP SIDE PANEL:
+			- Visible ONLY on xl screens and up (hidden on phone, tablet, and standard laptop).
+			- Displays unique content: Next Week's AI Plan Preview & Recent Activity Stream.
+			- No repeated streak, daily goal, or level stats.
 		-->
-		<div class="sticky top-6 hidden h-fit w-72 shrink-0 lg:block">
-			<SidePanel stats={data.stats} dailyGoal={data.dailyGoal} />
+		<div class="sticky top-6 hidden h-fit w-80 shrink-0 xl:block">
+			<SidePanel
+				weeklyPlan={data.weeklyPlan}
+				recentSessions={data.recentSessions}
+				books={data.books}
+			/>
 		</div>
 	</div>
 </div>

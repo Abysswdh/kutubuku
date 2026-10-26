@@ -1,10 +1,11 @@
-import { getDailyGoal, getUserStats } from '$lib/data/mock';
+import { getBooks, getRecentSessions, getWeeklyPlan } from '$lib/data/mock';
 import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async () => {
-	// Loaded from mock data now; will be replaced by PostgreSQL query later
+	// Root data for global navigation and desktop companion panel
 	return {
-		stats: getUserStats(),
-		dailyGoal: getDailyGoal()
+		weeklyPlan: getWeeklyPlan(),
+		recentSessions: getRecentSessions(5),
+		books: getBooks()
 	};
 };

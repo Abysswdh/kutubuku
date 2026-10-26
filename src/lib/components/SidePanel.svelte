@@ -1,77 +1,101 @@
 <script lang="ts">
-	import type { DailyGoal, UserStats } from '$lib/types';
-	import ProgressBar from './ProgressBar.svelte';
+	import type { Book, ReadingSession, WeeklyPlanPreview } from '$lib/types';
 
 	interface Props {
-		stats: UserStats;
-		dailyGoal: DailyGoal;
+		weeklyPlan: WeeklyPlanPreview;
+		recentSessions: ReadingSession[];
+		books?: Book[];
 	}
 
-	let { stats, dailyGoal }: Props = $props();
+	let { weeklyPlan, recentSessions, books = [] }: Props = $props();
 
-	let goalPercent = $derived(
-		Math.min(100, Math.round((stats.todayPagesRead / dailyGoal.targetPages) * 100))
-	);
+	function getBookTitle(bookId: string): string {
+		const found = books.find((b) => b.id === bookId);
+		return found ? found.title : 'Current Book';
+	}
 </script>
 
-<aside class="space-y-4" aria-label="Desktop Reading Summary">
-	<!-- Streak Card -->
-	<div class="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-		<div class="flex items-center gap-2 text-accent">
-			<svg
-				class="h-5 w-5"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2.2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
+<aside class="space-y-4" aria-label="Desktop Reading Companion">
+	<!-- Next Week's AI Plan (Preview) -->
+	<div class="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs">
+		<div class="flex items-center justify-between">
+			<span
+				class="inline-flex items-center gap-1.5 rounded-md bg-accent-subtle px-2 py-0.5 text-xs font-bold text-accent"
 			>
-				<path
-					d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"
-				/>
-			</svg>
-			<span class="text-xs font-bold tracking-wider uppercase">Active Streak</span>
+				<svg
+					class="h-3.5 w-3.5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path
+						d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
+					/>
+				</svg>
+				AI Plan Preview
+			</span>
+			<span class="text-[11px] font-semibold text-zinc-400">Next Week</span>
 		</div>
-		<div class="mt-2 flex items-baseline gap-2">
-			<span class="text-3xl font-black text-zinc-900">{stats.streakDays}</span>
-			<span class="text-sm font-medium text-zinc-500">consecutive days</span>
+
+		<div class="mt-3">
+			<h3 class="text-sm font-bold text-zinc-900">
+				Suggested: {weeklyPlan.targetPagesPerDay} pages / day
+			</h3>
+			<p class="mt-1 text-xs text-zinc-600 leading-relaxed">
+				{weeklyPlan.rationale}
+			</p>
 		</div>
-		<p class="mt-1 text-xs text-zinc-500 leading-relaxed">
-			Log at least 1 page today to protect your streak.
+
+		<div class="mt-3.5 flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2 text-xs">
+			<span class="text-zinc-500">Target book:</span>
+			<span class="font-bold text-zinc-900">{weeklyPlan.recommendedBookTitle}</span>
+		</div>
+
+		<p class="mt-3 text-[11px] text-zinc-400 leading-normal">
+			The AI planner analyzes your logged reading sessions to generate achievable weekly targets.
 		</p>
 	</div>
 
-	<!-- Daily Goal Card -->
-	<div class="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs">
+	<!-- Recent Activity (Unique to desktop side panel) -->
+	<div class="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs">
 		<div class="flex items-center justify-between">
-			<span class="text-xs font-bold tracking-wider text-zinc-500 uppercase">Daily Goal</span>
-			<span class="text-xs font-semibold text-accent">{goalPercent}%</span>
+			<h3 class="text-xs font-bold tracking-wider text-zinc-500 uppercase">
+				Recent Activity
+			</h3>
+			<span class="text-[11px] text-zinc-400">Latest logs</span>
 		</div>
-		<div class="mt-2 text-lg font-bold text-zinc-900">
-			{stats.todayPagesRead} <span class="text-xs font-normal text-zinc-500">/ {dailyGoal.targetPages} pages</span>
-		</div>
-		<div class="mt-2">
-			<ProgressBar value={stats.todayPagesRead} max={dailyGoal.targetPages} />
-		</div>
+
+		<ul class="mt-3 divide-y divide-zinc-100" role="list">
+			{#each recentSessions.slice(0, 3) as session (session.id)}
+				<li class="py-2.5 first:pt-0 last:pb-0">
+					<div class="flex items-baseline justify-between text-xs">
+						<span class="font-semibold text-zinc-900">
+							+{session.pagesRead} pages read
+						</span>
+						<time datetime={session.loggedAt} class="text-[11px] text-zinc-400">
+							{session.loggedAt}
+						</time>
+					</div>
+					<p class="mt-0.5 truncate text-[11px] text-zinc-500">
+						in {getBookTitle(session.bookId)}
+						{#if session.minutesRead}
+							• {session.minutesRead} min
+						{/if}
+					</p>
+				</li>
+			{/each}
+		</ul>
 	</div>
 
-	<!-- Level Progress Card -->
-	<div class="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-		<div class="flex items-center justify-between text-xs">
-			<span class="font-bold tracking-wider text-zinc-500 uppercase">Rank & Level</span>
-			<span class="font-semibold text-zinc-900">Level {stats.currentLevel}</span>
-		</div>
-		<div class="mt-2">
-			<ProgressBar
-				value={stats.totalXp % 200}
-				max={200}
-				sublabel="{stats.totalXp} Total XP"
-			/>
-		</div>
-		<p class="mt-2 text-[11px] text-zinc-400">
-			Earn XP by logging daily reading sessions.
+	<!-- Reading Tip Card -->
+	<div class="rounded-2xl border border-zinc-200/80 bg-zinc-50/70 p-4 text-xs text-zinc-500">
+		<p class="font-semibold text-zinc-800">Reading Habit Tip</p>
+		<p class="mt-1 leading-relaxed">
+			Consistency beats session length. Reading 15 pages every day totals 18 books a year.
 		</p>
 	</div>
 </aside>

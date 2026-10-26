@@ -1,11 +1,19 @@
 @import 'tailwindcss';
 
 @theme {
+	/* Primary accent: calm, bookish deep teal */
 	--color-accent: #0f766e;
 	--color-accent-hover: #115e59;
 	--color-accent-subtle: #f0fdfa;
 	--color-accent-muted: #ccfbf1;
 	--color-accent-text: #134e4a;
+
+	/* Secondary warm accent: used ONLY for streak, XP, rewards, and achievements */
+	--color-reward: #d97706;
+	--color-reward-hover: #b45309;
+	--color-reward-subtle: #fffbeb;
+	--color-reward-muted: #fde68a;
+	--color-reward-text: #92400e;
 }
 
 @layer base {
@@ -23,14 +31,29 @@
 		-moz-osx-font-smoothing: grayscale;
 	}
 
-	/* Accessible high-contrast focus rings */
 	:focus-visible {
 		outline: 2px solid var(--color-accent);
 		outline-offset: 2px;
 	}
 }
 
-/* Strictly respect user preference for reduced motion (e-ink & accessibility) */
+/* Subtle flame pulse animation for streak */
+@keyframes flame-subtle {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.12);
+	}
+}
+
+.animate-flame {
+	display: inline-block;
+	animation: flame-subtle 2.6s ease-in-out infinite;
+}
+
+/* Strictly respect prefers-reduced-motion for e-ink and accessibility */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	::before,
@@ -39,5 +62,8 @@
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
+	}
+	.animate-flame {
+		animation: none !important;
 	}
 }
