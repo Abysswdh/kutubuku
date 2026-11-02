@@ -91,6 +91,21 @@ export interface WeeklyPlanPreview {
 }
 
 /**
+ * Friend / community activity item for the "Bros" feed.
+ */
+export interface BroUpdate {
+	id: string;
+	userName: string;
+	avatarBg: string;
+	avatarInitials: string;
+	timeAgo: string;
+	message: string;
+	badgeEmoji: string;
+	celebrations: number;
+	hasCelebrated: boolean;
+}
+
+/**
  * Payload sent when logging a session.
  */
 export interface LogSessionInput {

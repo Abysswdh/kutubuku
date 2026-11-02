@@ -3,9 +3,11 @@
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
 	import BottomNav from '$lib/components/BottomNav.svelte';
-	import SidePanel from '$lib/components/SidePanel.svelte';
 
 	let { data, children }: LayoutProps = $props();
+
+	let stats = $derived(data.stats);
+	let dailyGoal = $derived(data.dailyGoal);
 </script>
 
 <svelte:head>
@@ -16,32 +18,47 @@
 	/>
 </svelte:head>
 
-<!-- Mobile-first wrapper with vertical scroll and min-h-dvh -->
 <div
 	class="min-h-dvh bg-zinc-50 text-zinc-900 antialiased selection:bg-accent-muted selection:text-accent-text"
 >
-	<!-- Duolingo-style centered layout: centered column on all devices -->
-	<div class="mx-auto flex w-full justify-center px-4 pt-4 sm:pt-6 xl:gap-10">
-		<!-- Main Content Column: centered max-w-md, with safe bottom padding for fixed nav -->
-		<main class="relative w-full max-w-md pb-36">
+	<!-- Responsive Navigation: Left Sidebar (Desktop), Icon Rail (Tablet/Kindle), Bottom Bar (Phone) -->
+	<BottomNav currentPath={page.url.pathname} />
+
+	<!-- Main Content Wrapper offset by sidebar width on md/lg screens -->
+	<div class="md:pl-20 lg:pl-60">
+		<!-- Simple Duolingo-style Top Status Bar -->
+		<header class="border-b border-zinc-200/80 bg-white/90 backdrop-blur-xs sticky top-0 z-30">
+			<div class="mx-auto flex max-w-xl items-center justify-between px-4 py-2.5 text-xs font-extrabold">
+				<!-- Brand on mobile only (since sidebar is hidden on mobile) -->
+				<a href="/" class="text-base font-black tracking-tight text-accent md:hidden">
+					kutubuku
+				</a>
+
+				<div class="flex flex-1 items-center justify-end gap-5 md:justify-between">
+					<!-- Streak -->
+					<div class="flex items-center gap-1.5 text-reward" title="Current reading streak">
+						<span class="text-sm" aria-hidden="true">🔥</span>
+						<span>{stats.streakDays}</span>
+					</div>
+
+					<!-- Total XP -->
+					<div class="flex items-center gap-1.5 text-accent" title="Total XP earned">
+						<span class="text-sm" aria-hidden="true">⚡</span>
+						<span>{stats.totalXp} XP</span>
+					</div>
+
+					<!-- Daily Pages Progress -->
+					<div class="flex items-center gap-1.5 text-zinc-700" title="Today's reading goal">
+						<span class="text-sm" aria-hidden="true">📖</span>
+						<span>{stats.todayPagesRead}/{dailyGoal.targetPages}p</span>
+					</div>
+				</div>
+			</div>
+		</header>
+
+		<!-- Centered Single-Column Content -->
+		<main class="mx-auto w-full max-w-xl px-4 pt-5 pb-28 md:pt-8 md:pb-12">
 			{@render children()}
-
-			<!-- Bottom navigation sits strictly inside the centered column width -->
-			<BottomNav currentPath={page.url.pathname} />
 		</main>
-
-		<!-- 
-			DESKTOP SIDE PANEL:
-			- Visible ONLY on xl screens and up (hidden on phone, tablet, and standard laptop).
-			- Displays unique content: Next Week's AI Plan Preview & Recent Activity Stream.
-			- No repeated streak, daily goal, or level stats.
-		-->
-		<div class="sticky top-6 hidden h-fit w-80 shrink-0 xl:block">
-			<SidePanel
-				weeklyPlan={data.weeklyPlan}
-				recentSessions={data.recentSessions}
-				books={data.books}
-			/>
-		</div>
 	</div>
 </div>

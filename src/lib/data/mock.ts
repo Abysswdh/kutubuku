@@ -1,6 +1,7 @@
 import type {
 	Badge,
 	Book,
+	BroUpdate,
 	DailyGoal,
 	LogSessionInput,
 	LogSessionResult,
@@ -181,6 +182,53 @@ let weeklyPlan: WeeklyPlanPreview = {
 	projectedWeeklyPages: 196
 };
 
+let broUpdates: BroUpdate[] = [
+	{
+		id: 'bro-1',
+		userName: 'Abyasa Wedha',
+		avatarBg: '#0f766e',
+		avatarInitials: 'AW',
+		timeAgo: '2 hours',
+		message: 'Finished reading Deep Work cover to cover!',
+		badgeEmoji: '🏆',
+		celebrations: 2,
+		hasCelebrated: true
+	},
+	{
+		id: 'bro-2',
+		userName: 'Yuka',
+		avatarBg: '#b45309',
+		avatarInitials: 'YK',
+		timeAgo: '1 day',
+		message: 'Read more than 50 pages in a single day!',
+		badgeEmoji: '📚',
+		celebrations: 1,
+		hasCelebrated: false
+	},
+	{
+		id: 'bro-3',
+		userName: 'Andre',
+		avatarBg: '#1d4ed8',
+		avatarInitials: 'AN',
+		timeAgo: '1 day',
+		message: 'Reached Level 5 in the Bookworm League!',
+		badgeEmoji: '⚡',
+		celebrations: 3,
+		hasCelebrated: false
+	},
+	{
+		id: 'bro-4',
+		userName: 'Ruben Hu',
+		avatarBg: '#6d28d9',
+		avatarInitials: 'RH',
+		timeAgo: '3 days',
+		message: 'Completed a 30-day reading streak!',
+		badgeEmoji: '🔥',
+		celebrations: 4,
+		hasCelebrated: false
+	}
+];
+
 // --- Query functions ---
 
 export function getBooks(): Book[] {
@@ -221,6 +269,23 @@ export function getBadges(): Badge[] {
 
 export function getWeeklyPlan(): WeeklyPlanPreview {
 	return { ...weeklyPlan };
+}
+
+export function getBroUpdates(): BroUpdate[] {
+	return broUpdates.map((u) => ({ ...u }));
+}
+
+export function toggleCelebrateBro(id: string): BroUpdate[] {
+	broUpdates = broUpdates.map((u) => {
+		if (u.id !== id) return u;
+		const nextCelebrated = !u.hasCelebrated;
+		return {
+			...u,
+			hasCelebrated: nextCelebrated,
+			celebrations: Math.max(0, u.celebrations + (nextCelebrated ? 1 : -1))
+		};
+	});
+	return getBroUpdates();
 }
 
 // --- Mutation function ---

@@ -1,9 +1,8 @@
 import {
-	getBadges,
+	getBooks,
 	getCurrentlyReading,
 	getDailyGoal,
-	getUserStats,
-	getWeekDays
+	getUserStats
 } from '$lib/data/mock';
 import type { PageLoad } from './$types';
 
@@ -12,7 +11,6 @@ export const load: PageLoad = async () => {
 		stats: getUserStats(),
 		dailyGoal: getDailyGoal(),
 		currentlyReading: getCurrentlyReading(),
-		weekDays: getWeekDays(),
-		badges: getBadges()
+		books: getBooks()
 	};
 };
