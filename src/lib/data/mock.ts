@@ -1,6 +1,7 @@
 import type {
 	Badge,
 	Book,
+	BroUpdate,
 	DailyGoal,
 	LogSessionInput,
 	LogSessionResult,
@@ -181,6 +182,31 @@ let weeklyPlan: WeeklyPlanPreview = {
 	projectedWeeklyPages: 196
 };
 
+let broUpdates: BroUpdate[] = [
+	{
+		id: 'bro-1',
+		userName: 'Stella Olivia',
+		avatarInitials: 'SO',
+		avatarBg: '#0f766e',
+		timeAgo: '2h ago',
+		message: 'Reached a 7-day reading streak and finished 30 pages of Atomic Habits!',
+		badgeEmoji: '🔥',
+		celebrations: 4,
+		hasCelebrated: true
+	},
+	{
+		id: 'bro-2',
+		userName: 'Ricky Satria',
+		avatarInitials: 'RS',
+		avatarBg: '#b45309',
+		timeAgo: '5h ago',
+		message: 'Completed Deep Work cover to cover (+100 XP bonus)!',
+		badgeEmoji: '📚',
+		celebrations: 2,
+		hasCelebrated: false
+	}
+];
+
 // --- Query functions ---
 
 export function getBooks(): Book[] {
@@ -221,6 +247,18 @@ export function getBadges(): Badge[] {
 
 export function getWeeklyPlan(): WeeklyPlanPreview {
 	return { ...weeklyPlan };
+}
+
+export function getBroUpdates(): BroUpdate[] {
+	return broUpdates.map((u) => ({ ...u }));
+}
+
+export function toggleCelebrateBro(id: string): void {
+	const item = broUpdates.find((u) => u.id === id);
+	if (item) {
+		item.hasCelebrated = !item.hasCelebrated;
+		item.celebrations += item.hasCelebrated ? 1 : -1;
+	}
 }
 
 // --- Mutation function ---

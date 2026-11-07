@@ -112,3 +112,18 @@ export interface LogSessionResult {
 	bookUpdated: Book;
 	isGoalNewlyMet: boolean;
 }
+
+/**
+ * Friend update item in the /bros social feed (maps to reading_sessions + friendships + session_celebrations).
+ */
+export interface BroUpdate {
+	id: string;
+	userName: string;
+	avatarInitials: string;
+	avatarBg: string;
+	timeAgo: string;
+	message: string;
+	badgeEmoji: string;
+	celebrations: number;
+	hasCelebrated: boolean;
+}
