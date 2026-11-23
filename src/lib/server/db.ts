@@ -26,6 +26,9 @@ function resolveDatabaseUrl(): string | null {
 					const raw = match[1].trim().replace(/^["']|["']$/g, '');
 					if (raw) return raw;
 				}
+				if (trimmed.startsWith('postgresql://') || trimmed.startsWith('postgres://')) {
+					return trimmed.replace(/^["']|["']$/g, '');
+				}
 			}
 		}
 	} catch {
