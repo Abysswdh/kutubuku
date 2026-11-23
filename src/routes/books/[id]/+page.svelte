@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import BookCover from '$lib/components/BookCover.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
-	import { logReadingSession } from '$lib/data/mock';
+	import type { BookStatus, DropReason } from '$lib/types';
 	import type { PageProps } from './$types';
 	import { fade, fly } from 'svelte/transition';
 
@@ -16,6 +16,19 @@
 	let minutesRead = $state<number | ''>(20);
 	let notes = $state('');
 	let isSubmitting = $state(false);
+
+	// Shelf Status & Drop Reason Form State (user_book table)
+	let selectedStatus = $state<BookStatus>('reading');
+	let selectedDropReason = $state<DropReason>('too_many_books');
+	let isUpdatingStatus = $state(false);
+	let statusFeedback = $state<string | null>(null);
+
+	$effect(() => {
+		selectedStatus = book.status;
+		if (book.dropReason) {
+			selectedDropReason = book.dropReason;
+		}
+	});
 
 	// Toggle to view all vs only the 3 most recent sessions
 	let showAllSessions = $state(false);
@@ -41,6 +54,33 @@
 		pagesRead = Math.max(1, pagesRead + delta);
 	}
 
+	async function handleUpdateStatus(e: SubmitEvent) {
+		e.preventDefault();
+		isUpdatingStatus = true;
+		statusFeedback = null;
+
+		try {
+			const res = await fetch('/api/books', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					bookId: book.id,
+					status: selectedStatus,
+					dropReason: selectedStatus === 'dropped' ? selectedDropReason : null
+				})
+			});
+			const json = await res.json();
+			if (!json.ok) {
+				statusFeedback = `⚠️ ${json.error}`;
+			} else {
+				await invalidateAll();
+				statusFeedback = `Updated shelf status to "${selectedStatus.toUpperCase()}"`;
+			}
+		} finally {
+			isUpdatingStatus = false;
+		}
+	}
+
 	async function handleSaveSession(e: SubmitEvent) {
 		e.preventDefault();
 		if (pagesRead < 1) return;
@@ -48,13 +88,20 @@
 		isSubmitting = true;
 
 		try {
-			// Update in-memory state
-			const result = logReadingSession({
-				bookId: book.id,
-				pagesRead: Number(pagesRead),
-				minutesRead: minutesRead === '' ? undefined : Number(minutesRead),
-				notes: notes.trim() || undefined
+			const res = await fetch('/api/sessions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					bookId: book.id,
+					pagesRead: Number(pagesRead),
+					minutesRead: minutesRead === '' ? undefined : Number(minutesRead),
+					notes: notes.trim() || undefined
+				})
 			});
+			const json = await res.json();
+			if (!json.ok) return;
+
+			const result = json.result;
 
 			// Re-run SvelteKit load functions
 			await invalidateAll();
@@ -122,29 +169,77 @@
 				size="md"
 			/>
 
-			<!-- Title, Author, Progress -->
+			<!-- Title, Author, Publisher, Progress -->
 			<div class="flex min-w-0 flex-1 flex-col justify-between self-stretch">
 				<div>
 					<span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-						{book.genre || 'Reading'}
+						{book.genre || 'Reading'} {book.userBookId ? `• ${book.userBookId}` : ''}
 					</span>
 					<h1 id="book-title" class="mt-0.5 text-lg font-black tracking-tight text-zinc-900 truncate">
 						{book.title}
 					</h1>
-					<p class="text-xs text-zinc-500 truncate">{book.author}</p>
+					<p class="text-xs text-zinc-500 truncate">
+						{book.author}
+						{#if book.publisher}
+							• {book.publisher}
+						{/if}
+					</p>
 				</div>
 
 				<div class="mt-4">
 					<ProgressBar
 						value={book.currentPage}
 						max={book.totalPages}
-						sublabel="Page {book.currentPage} of {book.totalPages}"
+						sublabel="Page {book.currentPage} of {book.totalPages} ({progressPercent}%)"
 						showPercentage={true}
 						heightClass="h-2"
 					/>
 				</div>
 			</div>
 		</div>
+
+		<!-- Shelf Status & Drop Reason Control (user_book table) -->
+		<form onsubmit={handleUpdateStatus} class="mt-4 border-t border-zinc-100 pt-3.5 text-xs space-y-2.5">
+			<div class="flex flex-wrap items-center gap-2">
+				<label for="shelf-status" class="font-bold text-zinc-600">Shelf Status:</label>
+				<select
+					id="shelf-status"
+					bind:value={selectedStatus}
+					class="h-9 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-xs font-bold text-zinc-800"
+				>
+					<option value="reading">Reading</option>
+					<option value="want_to_read">Planned (Want to Read)</option>
+					<option value="paused">Paused</option>
+					<option value="completed">Finished</option>
+					<option value="dropped">Dropped</option>
+				</select>
+
+				{#if selectedStatus === 'dropped'}
+					<select
+						aria-label="Reason for dropping book"
+						bind:value={selectedDropReason}
+						class="h-9 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-bold text-red-700"
+					>
+						<option value="too_many_books">Reason: Too Many Books</option>
+						<option value="overwhelmed">Reason: Overwhelmed</option>
+						<option value="lost_interest">Reason: Lost Interest</option>
+						<option value="other">Reason: Other</option>
+					</select>
+				{/if}
+
+				<button
+					type="submit"
+					disabled={isUpdatingStatus}
+					class="h-9 rounded-xl border border-zinc-200 bg-white px-3.5 font-extrabold text-zinc-700 transition-colors hover:bg-zinc-50"
+				>
+					{isUpdatingStatus ? 'Saving...' : 'Update Status'}
+				</button>
+			</div>
+
+			{#if statusFeedback}
+				<p class="text-[11px] font-bold text-accent">{statusFeedback}</p>
+			{/if}
+		</form>
 	</header>
 
 	<!-- Reward XP Notification Toast (Appears upon saving) -->
@@ -210,7 +305,7 @@
 				Log Reading Session
 			</h2>
 			<p class="text-xs text-zinc-500 mt-0.5">
-				Track pages read today to gain XP and maintain your habit streak.
+				Track pages read today (`currentPage = startPage + pagesRead`) to gain XP and maintain your streak.
 			</p>
 		</div>
 
@@ -361,6 +456,11 @@
 								<span class="text-sm font-bold text-zinc-900">
 									+{session.pagesRead} pages
 								</span>
+								{#if session.startPage !== undefined && session.currentPage !== undefined}
+									<span class="text-xs font-semibold text-zinc-400">
+										(p. {session.startPage} → {session.currentPage})
+									</span>
+								{/if}
 								{#if session.minutesRead}
 									<span class="text-xs text-zinc-400">· {session.minutesRead} min</span>
 								{/if}

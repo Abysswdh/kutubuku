@@ -1,75 +1,113 @@
 -- ============================================================================
--- KUTUBUKU — Sample Seed Data (DML) & Presentation Queries
--- Course: Database Technology (COMP6852004) — Class BH20 — BINUS University
--- Run after db/schema.sql in pgAdmin 4 or Supabase SQL Editor
+-- KUTUBUKU — Sample Seed Data (DML) for the 15-Table Schema
+-- Compatible with: Supabase SQL Editor & pgAdmin 4
 -- ============================================================================
 
--- 1. Seed Genres
-INSERT INTO genres (id, name, slug, description) VALUES
-    ('11111111-1111-1111-1111-111111111101', 'Self-Improvement', 'self-improvement', 'Personal growth, habits, and mindset'),
-    ('11111111-1111-1111-1111-111111111102', 'Productivity', 'productivity', 'Focus, time management, and deep work'),
-    ('11111111-1111-1111-1111-111111111103', 'Fiction', 'fiction', 'Literary fiction, sci-fi, and novels');
+-- 1. Publishers
+INSERT INTO publisher (publisherID, publisherName) VALUES
+    ('PU00000001', 'Penguin Random House'),
+    ('PU00000002', 'Grand Central Publishing'),
+    ('PU00000003', 'Faber & Faber'),
+    ('PU00000004', 'Farrar, Straus and Giroux');
 
--- 2. Seed Users
-INSERT INTO users (id, username, email, display_name, avatar_initials, avatar_bg, daily_target_pages, daily_target_minutes, has_gemini_key) VALUES
-    ('22222222-2222-2222-2222-222222222201', 'putra_kb', 'putra@example.com', 'Putra Abyasa', 'PA', '#4f46e5', 30, 25, TRUE),
-    ('22222222-2222-2222-2222-222222222202', 'stella_kb', 'stella@example.com', 'Stella Olivia', 'SO', '#0f766e', 25, 20, TRUE),
-    ('22222222-2222-2222-2222-222222222203', 'ricky_kb', 'ricky@example.com', 'Ricky Satria', 'RS', '#b45309', 20, 20, FALSE);
+-- 2. Authors
+INSERT INTO author (authorID, authorName, biography, birthDate, nationality) VALUES
+    ('AU00000001', 'James Clear', 'Author and speaker focused on habits, decision making, and continuous improvement.', '1986-01-22', 'American'),
+    ('AU00000002', 'Cal Newport', 'Computer science professor at Georgetown University and productivity writer.', '1982-06-23', 'American'),
+    ('AU00000003', 'Kazuo Ishiguro', 'Nobel Prize-winning British novelist.', '1954-11-08', 'British'),
+    ('AU00000004', 'Daniel Kahneman', 'Nobel Memorial Prize winner in Economic Sciences and psychologist.', '1934-03-05', 'Israeli-American');
 
--- 3. Seed User Stats
-INSERT INTO user_stats (user_id, streak_days, longest_streak, last_read_date, total_xp, current_level, xp_to_next_level, today_pages_read) VALUES
-    ('22222222-2222-2222-2222-222222222201', 5, 12, CURRENT_DATE, 420, 3, 600, 18),
-    ('22222222-2222-2222-2222-222222222202', 7, 14, CURRENT_DATE, 580, 3, 600, 30),
-    ('22222222-2222-2222-2222-222222222203', 3, 5, CURRENT_DATE - INTERVAL '1 day', 240, 2, 400, 0);
+-- 3. Genres
+INSERT INTO genre (genreID, genreName) VALUES
+    ('GN00000001', 'Self-Improvement'),
+    ('GN00000002', 'Productivity'),
+    ('GN00000003', 'Fiction'),
+    ('GN00000004', 'Science Fiction'),
+    ('GN00000005', 'Psychology');
 
--- 4. Seed Books
-INSERT INTO books (id, user_id, genre_id, title, author, isbn, total_pages, current_page, status, cover_color) VALUES
-    ('33333333-3333-3333-3333-333333333301', '22222222-2222-2222-2222-222222222201', '11111111-1111-1111-1111-111111111101', 'Atomic Habits', 'James Clear', '9780735211292', 320, 164, 'reading', '#0f766e'),
-    ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222201', '11111111-1111-1111-1111-111111111102', 'Deep Work', 'Cal Newport', '9781455586691', 296, 296, 'completed', '#1e293b'),
-    ('33333333-3333-3333-3333-333333333303', '22222222-2222-2222-2222-222222222201', '11111111-1111-1111-1111-111111111103', 'Klara and the Sun', 'Kazuo Ishiguro', '9780593318171', 303, 0, 'want_to_read', '#6b21a8');
+-- 4. Books
+INSERT INTO book (bookID, publisherID, title, isbn13, publishDate, pageCount, description) VALUES
+    ('BK00000001', 'PU00000001', 'Atomic Habits', '9780735211292', '2018-10-16', 320, 'An Easy & Proven Way to Build Good Habits & Break Bad Ones.'),
+    ('BK00000002', 'PU00000002', 'Deep Work', '9781455586691', '2016-01-05', 296, 'Rules for Focused Success in a Distracted World.'),
+    ('BK00000003', 'PU00000003', 'Klara and the Sun', '9780593318171', '2021-03-02', 303, 'A thrilling book that offers a look at our changing world through the eyes of an unforgettable narrator.'),
+    ('BK00000004', 'PU00000004', 'Thinking, Fast and Slow', '9780374533557', '2011-10-25', 499, 'Explores the two systems that drive the way we think.');
 
--- 5. Seed Reading Sessions
-INSERT INTO reading_sessions (id, user_id, book_id, pages_read, start_page, end_page, minutes_read, notes, xp_earned, is_verified, logged_at) VALUES
-    ('44444444-4444-4444-4444-444444444401', '22222222-2222-2222-2222-222222222201', '33333333-3333-3333-3333-333333333301', 18, 146, 164, 22, 'Great insight on habit stacking and environmental cues.', 28, TRUE, CURRENT_DATE),
-    ('44444444-4444-4444-4444-444444444402', '22222222-2222-2222-2222-222222222201', '33333333-3333-3333-3333-333333333301', 24, 122, 146, 30, 'Finished Chapter 5 on the 2-minute rule.', 34, TRUE, CURRENT_DATE - INTERVAL '1 day'),
-    ('44444444-4444-4444-4444-444444444403', '22222222-2222-2222-2222-222222222202', '33333333-3333-3333-3333-333333333301', 30, 1, 30, 25, 'Started reading Atomic Habits today!', 50, TRUE, CURRENT_DATE);
+-- 5. Book Authors (M:N)
+INSERT INTO book_author (bookID, authorID) VALUES
+    ('BK00000001', 'AU00000001'),
+    ('BK00000002', 'AU00000002'),
+    ('BK00000003', 'AU00000003'),
+    ('BK00000004', 'AU00000004');
 
--- 6. Seed AI Session Verifications
-INSERT INTO session_verifications (session_id, ai_prompt, user_response, ai_feedback, verification_status, bonus_xp, verified_at) VALUES
-    ('44444444-4444-4444-4444-444444444401',
-     'In pages 146-164 of Atomic Habits, how does James Clear suggest connecting a new habit to an existing daily routine?',
-     'By using the habit stacking formula: After [CURRENT HABIT], I will [NEW HABIT], combined with redesigning physical environment cues.',
-     'Verified! Accurate summary of habit stacking and environment design.',
-     'verified', 15, NOW());
+-- 6. Book Genres (M:N)
+INSERT INTO book_genre (bookID, genreID) VALUES
+    ('BK00000001', 'GN00000001'),
+    ('BK00000001', 'GN00000002'),
+    ('BK00000002', 'GN00000002'),
+    ('BK00000003', 'GN00000003'),
+    ('BK00000003', 'GN00000004'),
+    ('BK00000004', 'GN00000005');
 
--- 7. Seed Reading Plans & Items
-INSERT INTO reading_plans (id, user_id, week_start_date, week_end_date, target_pages_per_day, projected_weekly_pages, ai_rationale, status) VALUES
-    ('55555555-5555-5555-5555-555555555501', '22222222-2222-2222-2222-222222222201', CURRENT_DATE, CURRENT_DATE + INTERVAL '6 days', 28, 196,
-     'Based on your 22-min average sessions last week, pacing 28 pages/day finishes Atomic Habits and starts Klara and the Sun on Saturday.', 'active');
+-- 7. App Users
+INSERT INTO app_user (userID, userName, userEmail, passwordHash, registerDate, timezone, maxConcurrentBooks, currentStreak, longestStreak, lastActivityDate) VALUES
+    ('US00000001', 'Putra Abyasa', 'putra@example.com', '$2b$10$demoHashPutra', '2026-09-01', 'Asia/Jakarta', 3, 5, 12, CURRENT_DATE),
+    ('US00000002', 'Stella Olivia', 'stella@example.com', '$2b$10$demoHashStella', '2026-09-05', 'Asia/Jakarta', 3, 7, 14, CURRENT_DATE),
+    ('US00000003', 'Ricky Satria', 'ricky@example.com', '$2b$10$demoHashRicky', '2026-09-10', 'Asia/Jakarta', 2, 3, 5, CURRENT_DATE - INTERVAL '1 day');
 
-INSERT INTO reading_plan_items (plan_id, book_id, scheduled_date, target_pages, actual_pages_read, is_completed) VALUES
-    ('55555555-5555-5555-5555-555555555501', '33333333-3333-3333-3333-333333333301', CURRENT_DATE, 28, 18, FALSE),
-    ('55555555-5555-5555-5555-555555555501', '33333333-3333-3333-3333-333333333301', CURRENT_DATE + INTERVAL '1 day', 28, 0, FALSE),
-    ('55555555-5555-5555-5555-555555555501', '33333333-3333-3333-3333-333333333303', CURRENT_DATE + INTERVAL '2 days', 28, 0, FALSE);
+-- 8. User Books (Personal Shelf — including a dropped book with dropReason = 'too_many_books')
+INSERT INTO user_book (userBookID, userID, bookID, status, currentPage, startDate, endDate, dropReason) VALUES
+    ('UB00000001', 'US00000001', 'BK00000001', 'reading', 164, '2026-10-01', NULL, NULL),
+    ('UB00000002', 'US00000001', 'BK00000002', 'finished', 296, '2026-09-15', '2026-10-20', NULL),
+    ('UB00000003', 'US00000001', 'BK00000003', 'planned', 0, NULL, NULL, NULL),
+    ('UB00000004', 'US00000001', 'BK00000004', 'dropped', 62, '2026-09-02', '2026-09-19', 'too_many_books'),
+    ('UB00000005', 'US00000002', 'BK00000001', 'reading', 30, '2026-10-25', NULL, NULL);
 
--- 8. Seed Badges & User Badges
-INSERT INTO badges (id, code, title, description, icon, requirement_type, requirement_value, xp_reward) VALUES
-    ('66666666-6666-6666-6666-666666666601', 'STREAK_3', '3-Day Streak', 'Maintained 3 consecutive days of reading', 'flame', 'streak', 3, 50),
-    ('66666666-6666-6666-6666-666666666602', 'PAGES_100', '100 Pages Read', 'Crossed your first century of pages read', 'pages', 'pages', 100, 50),
-    ('66666666-6666-6666-6666-666666666603', 'FIRST_BOOK', 'First Book Finished', 'Completed your first book cover to cover', 'book', 'books_completed', 1, 100),
-    ('66666666-6666-6666-6666-666666666604', 'STREAK_7', '7-Day Master', 'Complete a full 7-day uninterrupted streak', 'target', 'streak', 7, 100),
-    ('66666666-6666-6666-6666-666666666605', 'XP_500', '500 XP Explorer', 'Earn 500 total XP from consistent reading', 'star', 'xp', 500, 100);
+-- 9. Progress Logs (Reading Sessions — enforces currentPage = startPage + pagesRead)
+INSERT INTO progress_log (progressLogID, userBookID, logDate, startPage, pagesRead, currentPage, minutesRead, note) VALUES
+    ('PL00000001', 'UB00000001', CURRENT_DATE - INTERVAL '4 days', 55, 15, 70, 20, 'Started reading the introduction.'),
+    ('PL00000002', 'UB00000001', CURRENT_DATE - INTERVAL '3 days', 70, 20, 90, 25, 'Fundamentals of compounding small improvements.'),
+    ('PL00000003', 'UB00000001', CURRENT_DATE - INTERVAL '2 days', 90, 32, 122, 40, 'Identity-based habits resonate strongly.'),
+    ('PL00000004', 'UB00000001', CURRENT_DATE - INTERVAL '1 day', 122, 24, 146, 30, 'Finished Chapter 5 on the 2-minute rule.'),
+    ('PL00000005', 'UB00000001', CURRENT_DATE, 146, 18, 164, 22, 'Great insight on habit stacking and environmental cues.');
 
-INSERT INTO user_badges (user_id, badge_id) VALUES
-    ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666601'),
-    ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666602'),
-    ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666603');
+-- 10. Reading Schedules
+INSERT INTO reading_schedule (scheduleID, userBookID, startDate, targetFinishDate, pagesPerDayTarget, estimatedPagesPerDay, predictedFinishDate, status) VALUES
+    ('RS00000001', 'UB00000001', CURRENT_DATE, CURRENT_DATE + INTERVAL '6 days', 28, 26.50, CURRENT_DATE + INTERVAL '6 days', 'active');
 
--- 9. Seed Friendships & Celebrations
-INSERT INTO friendships (requester_id, addressee_id, status) VALUES
-    ('22222222-2222-2222-2222-222222222201', '22222222-2222-2222-2222-222222222202', 'accepted'),
-    ('22222222-2222-2222-2222-222222222201', '22222222-2222-2222-2222-222222222203', 'accepted');
+-- 11. Schedule Reading Days (Days of week 1..7)
+INSERT INTO schedule_reading_day (scheduleID, dayOfWeek) VALUES
+    ('RS00000001', 1),
+    ('RS00000001', 2),
+    ('RS00000001', 3),
+    ('RS00000001', 4),
+    ('RS00000001', 5),
+    ('RS00000001', 6),
+    ('RS00000001', 7);
 
-INSERT INTO session_celebrations (session_id, from_user_id) VALUES
-    ('44444444-4444-4444-4444-444444444403', '22222222-2222-2222-2222-222222222201');
+-- 12. Schedule Days (Concrete daily targets)
+INSERT INTO schedule_day (scheduleDayID, scheduleID, scheduledDate, targetPages, status) VALUES
+    ('SD00000001', 'RS00000001', CURRENT_DATE - INTERVAL '2 days', 28, 'completed'),
+    ('SD00000002', 'RS00000001', CURRENT_DATE - INTERVAL '1 day', 28, 'completed'),
+    ('SD00000003', 'RS00000001', CURRENT_DATE, 28, 'pending'),
+    ('SD00000004', 'RS00000001', CURRENT_DATE + INTERVAL '1 day', 28, 'pending');
 
+-- 13. Badges
+INSERT INTO badge (badgeID, badgeName, description, iconURL, criteriaType, criteriaValue) VALUES
+    ('BD00000001', '3-Day Streak', 'Maintained 3 consecutive days of reading', 'flame', 'streak_days', 3),
+    ('BD00000002', '100 Pages Read', 'Crossed your first century of pages read', 'pages', 'pages_read', 100),
+    ('BD00000003', 'First Book Finished', 'Completed your first book cover to cover', 'book', 'books_finished', 1),
+    ('BD00000004', '7-Day Master', 'Complete a full 7-day uninterrupted streak', 'target', 'streak_days', 7),
+    ('BD00000005', '500 Pages Club', 'Read 500 cumulative pages across your shelf', 'star', 'pages_read', 500);
+
+-- 14. User Badges (M:N)
+INSERT INTO user_badge (userID, badgeID) VALUES
+    ('US00000001', 'BD00000001'),
+    ('US00000001', 'BD00000002'),
+    ('US00000001', 'BD00000003'),
+    ('US00000002', 'BD00000001'),
+    ('US00000002', 'BD00000004');
+
+-- 15. Reading Challenges
+INSERT INTO reading_challenge (challengeID, userID, challengeYear, targetBooks, targetPages) VALUES
+    ('RC00000001', 'US00000001', 2026, 12, 3600),
+    ('RC00000002', 'US00000002', 2026, 15, 4500);

@@ -6,6 +6,7 @@
 	let { data }: PageProps = $props();
 
 	let stats = $derived(data.stats);
+	let challenge = $derived(data.challenge);
 	let badges = $derived(data.badges);
 	let books = $derived(data.books);
 	let recentSessions = $derived(data.recentSessions);
@@ -25,12 +26,12 @@
 			<div
 				class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-lg font-black text-white"
 			>
-				KB
+				PA
 			</div>
 			<div class="flex-1">
-				<h2 class="text-lg font-extrabold text-zinc-900">Reader</h2>
+				<h2 class="text-lg font-extrabold text-zinc-900">{stats.userName ?? 'Reader'}</h2>
 				<p class="text-xs font-semibold text-zinc-400">
-					Level {stats.currentLevel} • {stats.totalXp} Total XP
+					Level {stats.currentLevel} • {stats.totalXp} Total XP • Longest Streak: {stats.longestStreak ?? stats.streakDays}d
 				</p>
 			</div>
 		</div>
@@ -59,17 +60,43 @@
 		</div>
 	</section>
 
+	<!-- Annual Reading Challenge Card (reading_challenge table) -->
+	<section class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-3.5">
+		<div class="flex items-center justify-between">
+			<h2 class="text-sm font-extrabold text-zinc-900">
+				🏆 {challenge.challengeYear} Reading Challenge
+			</h2>
+			<span class="rounded-lg bg-reward-subtle px-2.5 py-0.5 text-[11px] font-extrabold text-reward-text">
+				{challenge.completedBooks} / {challenge.targetBooks} Books
+			</span>
+		</div>
+
+		<ProgressBar
+			value={challenge.completedBooks}
+			max={challenge.targetBooks}
+			sublabel="Annual Book Target: {challenge.completedBooks} of {challenge.targetBooks} books finished"
+			heightClass="h-2"
+		/>
+
+		<ProgressBar
+			value={challenge.completedPages}
+			max={challenge.targetPages}
+			sublabel="Annual Page Target: {challenge.completedPages} of {challenge.targetPages} pages read"
+			heightClass="h-2"
+		/>
+	</section>
+
 	<!-- Badges & Milestones -->
 	<section aria-label="Badges and milestones">
 		<BadgesRow {badges} />
 	</section>
 
-	<!-- Recent Logs -->
+	<!-- Recent Logs (progress_log table) -->
 	<section class="space-y-3">
 		<div class="flex items-center gap-3">
 			<div class="h-px flex-1 bg-zinc-200"></div>
 			<h2 class="text-xs font-extrabold tracking-wider text-zinc-400 uppercase">
-				Recent Activity
+				Recent Progress Logs
 			</h2>
 			<div class="h-px flex-1 bg-zinc-200"></div>
 		</div>
@@ -78,7 +105,14 @@
 			{#each recentSessions as session (session.id)}
 				<li class="flex items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-xs">
 					<div>
-						<span class="font-extrabold text-zinc-900">+{session.pagesRead} pages read</span>
+						<span class="font-extrabold text-zinc-900">
+							+{session.pagesRead} pages read
+							{#if session.startPage !== undefined && session.currentPage !== undefined}
+								<span class="font-semibold text-zinc-400">
+									(p. {session.startPage} → {session.currentPage})
+								</span>
+							{/if}
+						</span>
 						{#if session.notes}
 							<p class="mt-0.5 text-zinc-500 truncate max-w-xs">“{session.notes}”</p>
 						{/if}
@@ -89,4 +123,3 @@
 		</ul>
 	</section>
 </div>
-

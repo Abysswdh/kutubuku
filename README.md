@@ -1,8 +1,8 @@
 # 📚 kutubuku
 
-> **Duolingo & Strava for Reading Books** — A gamified reading journal and AI-powered reading planner designed to cure *tsundoku* (buying books that end up collecting dust) and build daily reading habits.
+> **Duolingo & Strava for Reading Books** — A gamified reading journal and smart reading planner designed to cure *tsundoku* (buying books that end up collecting dust) and build daily reading habits.
 
-**Status:** Active Development (Phase 1 MVP UI & Phase 2 PostgreSQL Schema Ready)  
+**Status:** Active Development (Mock UI Ready + 15-Table Supabase PostgreSQL Schema Ready)  
 **Course:** Database Technology (`COMP6852004`) — Class **BH20**, Computer Science — **BINUS University**
 
 ---
@@ -11,134 +11,96 @@
 
 ### 1. The Core Problem
 Many book buyers suffer from ***tsundoku***—acquiring multiple physical or digital books with good intentions, only to leave them unfinished collecting dust on the shelf because of:
-1. **Overwhelm & Lack of Pacing:** Having 3–5 unread books without a clear daily schedule (*jadwal baca*) of what and how much to read each day.
-2. **Lack of Immediate Feedback:** Unlike games or fitness apps (Strava, Duolingo), reading a physical book offers no immediate streak, XP, or social celebration.
-3. **Fake Accountability:** Existing trackers allow users to click "read" without proving comprehension, making streaks meaningless.
+1. **Concurrent Book Overwhelm:** Starting too many books at once without a limit (`maxConcurrentBooks`), leading to dropped books (`dropReason`: `'too_many_books'`, `'overwhelmed'`).
+2. **Lack of Pacing (*Jadwal Baca*):** Not knowing how many pages per day are needed to finish a book by a target date.
+3. **Lack of Immediate Feedback:** Unlike games or fitness apps (Strava, Duolingo), reading a physical book offers no immediate streak, badge, or visual habit loop.
 
 ### 2. Why This Is Urgent (Backed by Data)
 Indonesia faces a well-documented literacy and reading habit challenge (**"Indonesia Darurat Membaca"**):
-- **UNESCO Reading Interest Index:** Indonesia's reading interest index is frequently cited at **0.001** (meaning roughly only 1 in 1,000 people has an active, consistent daily reading habit).
-- **PISA 2022 Reading Literacy Score:** Indonesia scored **359** in Reading (OECD average: **476**), ranking among the bottom tier globally and marking a decline from previous cycles.
-- **Perpusnas RI (Tingkat Kegemaran Membaca / TGM):** While book access is rising in urban areas, **reading duration and book completion rates** remain low—most book buyers purchase books at fairs (e.g., Big Bad Wolf, Gramedia) but complete fewer than 2–3 books per year.
+- **UNESCO Reading Interest Index:** Indonesia's reading interest index is cited at **0.001** (roughly only 1 in 1,000 people maintains an active daily reading habit).
+- **PISA 2022 Reading Literacy Score:** Indonesia scored **359** in Reading (OECD average: **476**), ranking in the bottom tier globally.
+- **Perpusnas RI (Tingkat Kegemaran Membaca / TGM):** While book purchases at book fairs remain popular, actual **book completion rates and daily reading duration** remain critically low.
 
 ### 3. Target Audience
-- **Book Hoarders & Casual Readers:** People who own multiple unfinished physical/digital books and need a realistic weekly reading schedule.
-- **Habit Builders & Self-Improvers:** Readers motivated by streaks, XP levels, achievement badges, and friendly social accountability ("Bros" feed & celebrations).
+- **Book Hoarders & Casual Readers:** People who own multiple unfinished physical/digital books and need a structured reading schedule.
+- **Habit Builders & Self-Improvers:** Readers motivated by streaks, milestones, annual reading challenges, and daily habit strips.
 
 ---
 
-## ✨ Key Features & Solutions
+## 🗄️ Database Architecture (15 Normalized Tables on Supabase)
 
-1. **Personal Book Inventory & Progress Tracking:** Input owned books (`want_to_read`, `reading`, `completed`), total pages, genres, and track completion percentage.
-2. **AI-Powered Weekly Reading Planner (*Jadwal Baca*):** Spreads reading load across owned books for the week based on the user's average reading speed and daily target pages.
-3. **Anti-Cheat AI Reading Verification (BYOK Gemini API):**
-   - To solve **fake streak farming**, users can input their own free **Google Gemini API Key** (Bring Your Own Key / BYOK).
-   - When logging a session, the AI asks a brief comprehension/reflection question about the pages or chapter just read and awards verified bonus XP.
-4. **Gamification & Social Accountability ("Bros"):**
-   - Daily streaks, 7-day habit strips, XP levels, unlockable badges, and a social feed where friends can **Celebrate 🎉** each other's reading milestones.
+Designed in **3rd Normal Form (3NF)** for **Supabase (PostgreSQL)** using BINUS Lab-style `CHAR(10)` regex-validated keys (`^BK\d{8}$`, `^US\d{8}$`, etc.).
 
----
-
-## 🗄️ Database Architecture (12 Normalized Tables)
-
-Designed in **3rd Normal Form (3NF)** for **PostgreSQL** (compatible with **pgAdmin 4** locally and **Supabase** in production).
-
-- 📄 **DDL Schema (`CREATE TABLE`):** [`db/schema.sql`](db/schema.sql)
+- 📄 **DDL Schema (`CREATE TABLE`):** [`db/schema.sql`](db/schema.sql) (adopted from [`KutuBukuu(6).sql`](KutuBukuu(6).sql))
 - 🌱 **DML Seed Data (`INSERT INTO`):** [`db/seed.sql`](db/seed.sql)
 
 ### Entity-Relationship Overview
 
 ```mermaid
 erDiagram
-    users ||--|| user_stats : "has 1:1 stats"
-    users ||--o{ books : "owns"
-    genres ||--o{ books : "categorizes"
-    users ||--o{ reading_sessions : "logs"
-    books ||--o{ reading_sessions : "tracks"
-    reading_sessions ||--o| session_verifications : "verified by AI"
-    users ||--o{ reading_plans : "generates"
-    reading_plans ||--o{ reading_plan_items : "contains daily items"
-    books ||--o{ reading_plan_items : "scheduled in"
-    users ||--o{ user_badges : "unlocks"
-    badges ||--o{ user_badges : "awarded via"
-    users ||--o{ friendships : "connects with"
-    reading_sessions ||--o{ session_celebrations : "receives kudos"
-    users ||--o{ session_celebrations : "celebrates"
+    publisher ||--o{ book : "publishes"
+    book ||--o{ book_author : "written by"
+    author ||--o{ book_author : "writes"
+    book ||--o{ book_genre : "classified in"
+    genre ||--o{ book_genre : "categorizes"
+    app_user ||--o{ user_book : "tracks on shelf"
+    book ||--o{ user_book : "referenced by"
+    user_book ||--o{ progress_log : "logs pages"
+    user_book ||--o{ reading_schedule : "scheduled via"
+    reading_schedule ||--o{ schedule_reading_day : "active weekdays"
+    reading_schedule ||--o{ schedule_day : "daily targets"
+    app_user ||--o{ user_badge : "earns"
+    badge ||--o{ user_badge : "awarded as"
+    app_user ||--o{ reading_challenge : "sets annual goal"
 ```
 
-### Explanation of the 12 Tables
+### Explanation of the 15 Tables
 
-| # | Table Name | Role & Justification |
-| :- | :--- | :--- |
-| **1** | `users` | Stores user accounts, profile display info, daily reading goals (`daily_target_pages`), and BYOK Gemini status. |
-| **2** | `user_stats` | **1:1 with `users`**. Tracks real-time gamification state (`streak_days`, `longest_streak`, `total_xp`, `current_level`, `today_pages_read`). |
-| **3** | `genres` | **3NF Lookup Table**. Normalizes book genres (`Self-Improvement`, `Productivity`, `Fiction`) to prevent string duplication across books. |
-| **4** | `books` | User's owned book collection (`title`, `author`, `isbn`, `total_pages`, `current_page`, `status`). |
-| **5** | `reading_sessions` | Core transactional log whenever a user reads (`pages_read`, `start_page`, `end_page`, `minutes_read`, `notes`, `xp_earned`, `is_verified`). |
-| **6** | `session_verifications` | **AI Anti-Cheat Table**. Stores the Gemini-generated comprehension prompt, user's answer, AI feedback, and `verification_status` (`pending`, `verified`, `flagged`). |
-| **7** | `reading_plans` | **Schedule Header**. Stores weekly reading plans (`week_start_date`, `target_pages_per_day`, `projected_weekly_pages`, `ai_rationale`). |
-| **8** | `reading_plan_items` | **Schedule Detail**. Breaks a weekly plan into day-by-day book assignments (`scheduled_date`, `book_id`, `target_pages`, `is_completed`). |
-| **9** | `badges` | **Master Catalog**. Defines unlockable achievements (`3-Day Streak`, `100 Pages Read`, `First Book Finished`, etc.) and their XP rewards. |
-| **10** | `user_badges` | **M:N Junction Table**. Records which user unlocked which badge and the exact `unlocked_at` timestamp. |
-| **11** | `friendships` | **Social Graph**. Tracks friend connections ("Bros") between users (`requester_id`, `addressee_id`, `status`). |
-| **12** | `session_celebrations` | **Social Interactions**. Records "Celebrate 🎉" reactions from friends on a user's reading session. |
+| # | Table Name | ID Format | Role & Justification |
+| :- | :--- | :--- | :--- |
+| **1** | `publisher` | `PU\d{8}` | **3NF Lookup**. Stores book publisher names (`publisherName`). |
+| **2** | `author` | `AU\d{8}` | **3NF Entity**. Stores author details (`authorName`, `biography`, `birthDate`, `nationality`). |
+| **3** | `genre` | `GN\d{8}` | **3NF Lookup**. Unique book genres (`Self-Improvement`, `Productivity`, `Fiction`). |
+| **4** | `book` | `BK\d{8}` | **Master Book Catalog**. Global book metadata (`title`, `isbn13`, `publishDate`, `pageCount`, `publisherID`). |
+| **5** | `book_author` | Composite PK | **M:N Junction Table**. Connects `book` and `author` (supports multi-author books). |
+| **6** | `book_genre` | Composite PK | **M:N Junction Table**. Connects `book` and `genre` (supports multi-genre books). |
+| **7** | `app_user` | `US\d{8}` | **Core User Entity**. Account profile, `maxConcurrentBooks` limit, `currentStreak`, and `longestStreak`. |
+| **8** | `user_book` | `UB\d{8}` | **Personal Shelf**. Tracks a user's copy of a book (`status`: `planned`, `reading`, `paused`, `finished`, `dropped`, plus `dropReason`). |
+| **9** | `progress_log` | `PL\d{8}` | **Reading Sessions**. Logs `startPage`, `pagesRead`, `currentPage`, `minutesRead`, and `note` with `CHECK (currentPage = startPage + pagesRead)`. |
+| **10** | `reading_schedule` | `RS\d{8}` | **Schedule Header**. Target dates and pace (`pagesPerDayTarget`, `estimatedPagesPerDay`, `predictedFinishDate`) for an active `user_book`. |
+| **11** | `schedule_reading_day` | Composite PK | **Weekly Habit Days**. Stores which days of the week (`1`–`7`) the user commits to reading. |
+| **12** | `schedule_day` | `SD\d{8}` | **Daily Schedule Detail**. Concrete calendar dates (`scheduledDate`, `targetPages`, and status `pending`, `completed`, `missed`). |
+| **13** | `badge` | `BD\d{8}` | **Achievement Catalog**. Defines milestones (`streak_days`, `books_finished`, `pages_read`) and threshold values. |
+| **14** | `user_badge` | Composite PK | **M:N Junction Table**. Records which user unlocked which badge and when (`awardedAt`). |
+| **15** | `reading_challenge` | `RC\d{8}` | **Annual Goal**. Stores a user's yearly reading target (`challengeYear`, `targetBooks`, `targetPages`). |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Cloud Hosting
 
-- **Frontend & Fullstack Framework:** SvelteKit (Svelte 5 Runes) + TypeScript
-- **Styling:** Tailwind CSS v4 (Mobile-first, Duolingo-inspired tactile UI)
-- **Database:** PostgreSQL (Local testing in **pgAdmin 4**, Cloud hosted on **Supabase**)
-- **Deployment:** **Vercel**
-- **AI Integration (Planned):** Google Gemini API (Bring Your Own Key / BYOK for zero-cost student hosting)
+- **Framework:** SvelteKit (Svelte 5 Runes) + TypeScript
+- **Styling:** Tailwind CSS v4 (Duolingo-inspired tactile UI)
+- **Cloud Database:** **Supabase** (Hosted PostgreSQL — tables created via Supabase SQL Editor or Table Editor)
+- **Web Hosting:** **Vercel**
+- **AI Integration (Planned):** Google Gemini API (Bring Your Own Key / BYOK)
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Local Web App Setup
+### 1. Run the App Locally (Currently on Mock Data)
 ```bash
-# Install dependencies
 npm install
-
-# Start development server at http://localhost:5173
 npm run dev
-
-# Run TypeScript & Svelte checks
-npm run check
 ```
+Open `http://localhost:5173`.
 
-### 2. Setting Up PostgreSQL (pgAdmin 4 or Supabase)
-1. Open **pgAdmin 4** (Query Tool) or **Supabase Dashboard** (SQL Editor).
-2. Execute [`db/schema.sql`](db/schema.sql) to create all 12 tables, constraints, and indexes.
-3. Execute [`db/seed.sql`](db/seed.sql) to populate sample users, books, sessions, AI verifications, and weekly plans.
-
----
-
-## 📂 Project Structure
-
-```text
-kutubuku/
-├── db/
-│   ├── schema.sql                # 12-table PostgreSQL DDL schema
-│   └── seed.sql                  # Sample DML seed data for testing & demo
-├── src/
-│   ├── lib/
-│   │   ├── components/           # Reusable Svelte 5 UI components
-│   │   ├── data/
-│   │   │   └── mock.ts           # In-memory store (being migrated to Supabase PG)
-│   │   └── types.ts              # TypeScript interfaces matching PostgreSQL entities
-│   └── routes/
-│       ├── +layout.svelte        # Responsive shell with BottomNav & SidePanel
-│       ├── +page.svelte          # Dashboard (Streak, Daily Goal, Active Book)
-│       ├── books/[id]/           # Book detail & reading session logger
-│       ├── planner/              # Weekly reading schedule & reading queue
-│       ├── bros/                 # Social friend updates & Celebrate interactions
-│       └── profile/              # User level, XP progress, badges & history
-├── AGENTS.md                     # Context & architectural rules for AI coding agents
-└── README.md                     # Project overview & documentation
-```
+### 2. Initialize Your Supabase Cloud Database
+Even though we host on **Supabase** (instead of Railway), Supabase is powered by PostgreSQL under the hood. Instead of manually clicking "Create Table" 15 times in the Supabase GUI:
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In your Supabase sidebar, click **SQL Editor** → **New Query**.
+3. Copy-paste [`db/schema.sql`](db/schema.sql) and click **Run** (this creates all 15 tables and constraints in 1 second in your hosted Supabase database!).
+4. Copy-paste [`db/seed.sql`](db/seed.sql) and click **Run** to populate your Supabase tables with initial data.
 
 ---
 
