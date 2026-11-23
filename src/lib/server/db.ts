@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import postgres from 'postgres';
 
 /**
@@ -6,8 +8,35 @@ import postgres from 'postgres';
  */
 let sqlInstance: ReturnType<typeof postgres> | null = null;
 
+function resolveDatabaseUrl(): string | null {
+	if (process.env.DATABASE_URL?.trim()) {
+		return process.env.DATABASE_URL.trim();
+	}
+
+	// Fallback: read local .env file during Vite dev if process.env wasn't pre-populated
+	try {
+		const envPath = path.resolve(process.cwd(), '.env');
+		if (fs.existsSync(envPath)) {
+			const content = fs.readFileSync(envPath, 'utf-8');
+			for (const line of content.split(/\r?\n/)) {
+				const trimmed = line.trim();
+				if (!trimmed || trimmed.startsWith('#')) continue;
+				const match = trimmed.match(/^DATABASE_URL\s*=\s*(.*)$/);
+				if (match) {
+					const raw = match[1].trim().replace(/^["']|["']$/g, '');
+					if (raw) return raw;
+				}
+			}
+		}
+	} catch {
+		// Ignore fs errors in serverless environments
+	}
+
+	return null;
+}
+
 export function getDb(): ReturnType<typeof postgres> | null {
-	const dbUrl = process.env.DATABASE_URL?.trim();
+	const dbUrl = resolveDatabaseUrl();
 	if (!dbUrl) {
 		return null;
 	}
