@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 
 @theme {
+	/* Font Families */
+	--font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--font-display: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
 	/* Primary accent: calm, bookish deep teal */
 	--color-accent: #0f766e;
 	--color-accent-hover: #115e59;
@@ -23,12 +27,15 @@
 
 	body {
 		margin: 0;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-			sans-serif;
+		font-family: var(--font-sans);
 		background-color: #fafafa;
 		color: #18181b;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+	}
+
+	h1, h2, h3, h4, h5, h6, button, [role="button"], nav {
+		font-family: var(--font-display);
 	}
 
 	:focus-visible {

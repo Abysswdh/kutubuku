@@ -1,5 +1,6 @@
 import {
 	fetchBadges,
+	fetchBooks,
 	fetchCurrentlyReading,
 	fetchDailyGoal,
 	fetchUserStats,
@@ -8,12 +9,13 @@ import {
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-	const [stats, dailyGoal, currentlyReading, weekDays, badges] = await Promise.all([
+	const [stats, dailyGoal, currentlyReading, weekDays, badges, books] = await Promise.all([
 		fetchUserStats(),
 		fetchDailyGoal(),
 		fetchCurrentlyReading(),
 		fetchWeekDays(),
-		fetchBadges()
+		fetchBadges(),
+		fetchBooks()
 	]);
 
 	return {
@@ -21,6 +23,7 @@ export const load: PageServerLoad = async () => {
 		dailyGoal,
 		currentlyReading,
 		weekDays,
-		badges
+		badges,
+		books
 	};
 };
