@@ -8,6 +8,11 @@
 
 	let stats = $derived(data.stats);
 	let dailyGoal = $derived(data.dailyGoal);
+	let hideChrome = $derived(
+		!data.user ||
+			page.url.pathname.startsWith('/auth') ||
+			page.url.pathname.startsWith('/onboarding')
+	);
 </script>
 
 <svelte:head>
@@ -21,44 +26,52 @@
 <div
 	class="min-h-dvh bg-zinc-50 text-zinc-900 antialiased selection:bg-accent-muted selection:text-accent-text"
 >
-	<!-- Responsive Navigation: Left Sidebar (Desktop), Icon Rail (Tablet/Kindle), Bottom Bar (Phone) -->
-	<BottomNav currentPath={page.url.pathname} />
-
-	<!-- Main Content Wrapper offset by sidebar width on md/lg screens -->
-	<div class="md:pl-20 lg:pl-60">
-		<!-- Simple Duolingo-style Top Status Bar -->
-		<header class="border-b border-zinc-200/80 bg-white/90 backdrop-blur-xs sticky top-0 z-30">
-			<div class="mx-auto flex max-w-xl items-center justify-between px-4 py-2.5 text-xs font-extrabold">
-				<!-- Brand on mobile only (since sidebar is hidden on mobile) -->
-				<a href="/" class="text-base font-black tracking-tight text-accent md:hidden">
-					kutubuku
-				</a>
-
-				<div class="flex flex-1 items-center justify-end gap-5 md:justify-between">
-					<!-- Streak -->
-					<div class="flex items-center gap-1.5 text-reward" title="Current reading streak">
-						<span class="text-sm" aria-hidden="true">🔥</span>
-						<span>{stats.streakDays}</span>
-					</div>
-
-					<!-- Total XP -->
-					<div class="flex items-center gap-1.5 text-accent" title="Total XP earned">
-						<span class="text-sm" aria-hidden="true">⚡</span>
-						<span>{stats.totalXp} XP</span>
-					</div>
-
-					<!-- Daily Pages Progress -->
-					<div class="flex items-center gap-1.5 text-zinc-700" title="Today's reading goal">
-						<span class="text-sm" aria-hidden="true">📖</span>
-						<span>{stats.todayPagesRead}/{dailyGoal.targetPages}p</span>
-					</div>
-				</div>
-			</div>
-		</header>
-
-		<!-- Centered Single-Column Content -->
-		<main class="mx-auto w-full max-w-xl px-4 pt-5 pb-28 md:pt-8 md:pb-12">
+	{#if hideChrome}
+		<main class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-10">
 			{@render children()}
 		</main>
-	</div>
+	{:else}
+		<!-- Responsive Navigation: Left Sidebar (Desktop), Icon Rail (Tablet/Kindle), Bottom Bar (Phone) -->
+		<BottomNav currentPath={page.url.pathname} />
+
+		<!-- Main Content Wrapper offset by sidebar width on md/lg screens -->
+		<div class="md:pl-20 lg:pl-60">
+			<!-- Simple Duolingo-style Top Status Bar -->
+			{#if stats && dailyGoal}
+				<header class="border-b border-zinc-200/80 bg-white/90 backdrop-blur-xs sticky top-0 z-30">
+					<div class="mx-auto flex max-w-xl items-center justify-between px-4 py-2.5 text-xs font-extrabold">
+						<!-- Brand on mobile only (since sidebar is hidden on mobile) -->
+						<a href="/" class="text-base font-black tracking-tight text-accent md:hidden">
+							kutubuku
+						</a>
+
+						<div class="flex flex-1 items-center justify-end gap-5 md:justify-between">
+							<!-- Streak -->
+							<div class="flex items-center gap-1.5 text-reward" title="Current reading streak">
+								<span class="text-sm" aria-hidden="true">🔥</span>
+								<span>{stats.streakDays}</span>
+							</div>
+
+							<!-- Total XP -->
+							<div class="flex items-center gap-1.5 text-accent" title="Total XP earned">
+								<span class="text-sm" aria-hidden="true">⚡</span>
+								<span>{stats.totalXp} XP</span>
+							</div>
+
+							<!-- Daily Pages Progress -->
+							<div class="flex items-center gap-1.5 text-zinc-700" title="Today's reading goal">
+								<span class="text-sm" aria-hidden="true">📖</span>
+								<span>{stats.todayPagesRead}/{dailyGoal.targetPages}p</span>
+							</div>
+						</div>
+					</div>
+				</header>
+			{/if}
+
+			<!-- Centered Single-Column Content -->
+			<main class="mx-auto w-full max-w-xl px-4 pt-5 pb-28 md:pt-8 md:pb-12">
+				{@render children()}
+			</main>
+		</div>
+	{/if}
 </div>

@@ -2,10 +2,10 @@ import { json } from '@sveltejs/kit';
 import { changeBookShelfStatus, createBookOnShelf } from '$lib/server/repository';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const body = await request.json();
-		const book = await createBookOnShelf(body);
+		const book = await createBookOnShelf(body, locals.user?.userId);
 		return json({ ok: true, book });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Failed to add book';
@@ -13,10 +13,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 };
 
-export const PATCH: RequestHandler = async ({ request }) => {
+export const PATCH: RequestHandler = async ({ request, locals }) => {
 	try {
 		const body = await request.json();
-		const book = await changeBookShelfStatus(body);
+		const book = await changeBookShelfStatus(body, locals.user?.userId);
 		return json({ ok: true, book });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Failed to update book status';

@@ -28,6 +28,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"arctic": "^3.7.0",
 		"postgres": "^4.1.1"
 	}
 }

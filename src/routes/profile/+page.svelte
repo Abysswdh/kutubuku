@@ -13,12 +13,30 @@
 
 	let xpInCurrentTier = $derived(stats.totalXp % 200);
 	let completedBooksCount = $derived(books.filter((b) => b.status === 'completed').length);
+	let initials = $derived(
+		(stats.userName ?? 'Reader')
+			.split(/\s+/)
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((p) => p[0]?.toUpperCase() ?? '')
+			.join('') || 'KB'
+	);
 </script>
 
 <div class="space-y-6">
-	<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">
-		Profile
-	</h1>
+	<div class="flex items-center justify-between">
+		<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">
+			Profile
+		</h1>
+		<form method="POST" action="/auth/logout">
+			<button
+				type="submit"
+				class="rounded-xl border-2 border-zinc-200 bg-white px-3 py-1.5 text-xs font-extrabold text-zinc-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+			>
+				Sign Out
+			</button>
+		</form>
+	</div>
 
 	<!-- Simple User Header Card -->
 	<section class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-4">
@@ -26,7 +44,7 @@
 			<div
 				class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-lg font-black text-white"
 			>
-				PA
+				{initials}
 			</div>
 			<div class="flex-1">
 				<h2 class="text-lg font-extrabold text-zinc-900">{stats.userName ?? 'Reader'}</h2>
