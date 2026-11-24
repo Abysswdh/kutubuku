@@ -100,7 +100,7 @@
 			</h1>
 
 			<p class="mx-auto max-w-lg text-sm font-semibold text-zinc-500">
-				Kutubuku turns the physical and digital books you already own into a daily reading streak — with smart schedules, annual goals, and Bookmates cheering you on.
+				Kutubuku turns the physical and digital books you already own into a daily reading streak — with smart schedules, annual goals, and Sobat cheering you on.
 			</p>
 
 			<div class="flex flex-wrap items-center justify-center gap-3 pt-1">
@@ -137,7 +137,7 @@
 			</div>
 			<div class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-1.5">
 				<div class="text-2xl" aria-hidden="true">🎉</div>
-				<h2 class="text-sm font-extrabold text-zinc-900">Bookmates & Shareable Cards</h2>
+				<h2 class="text-sm font-extrabold text-zinc-900">Sobat & Shareable Cards</h2>
 				<p class="text-xs font-medium text-zinc-500">
 					Follow friends, celebrate milestones, and share your public reader profile link.
 				</p>

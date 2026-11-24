@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db';
 import { getBroUpdates as mockGetBroUpdates } from '$lib/data/mock';
 
-export interface BookmateFeedItem {
+export interface SobatFeedItem {
 	activityKey: string;
 	userId: string;
 	userName: string;
@@ -16,7 +16,7 @@ export interface BookmateFeedItem {
 	hasCelebrated: boolean;
 }
 
-export interface BookmateLeaderboardRow {
+export interface SobatLeaderboardRow {
 	userId: string;
 	userName: string;
 	avatarInitials: string;
@@ -27,7 +27,7 @@ export interface BookmateLeaderboardRow {
 	booksFinished: number;
 }
 
-export interface BookmateDirectoryUser {
+export interface SobatDirectoryUser {
 	userId: string;
 	userName: string;
 	userEmail: string;
@@ -72,7 +72,7 @@ function formatTimeAgo(input: Date | string): string {
 	return date.toISOString().split('T')[0];
 }
 
-export async function fetchBookmateFeed(userId: string): Promise<BookmateFeedItem[]> {
+export async function fetchSobatFeed(userId: string): Promise<SobatFeedItem[]> {
 	const sql = getDb();
 	if (!sql) {
 		return mockGetBroUpdates().map((m) => ({
@@ -95,7 +95,7 @@ export async function fetchBookmateFeed(userId: string): Promise<BookmateFeedIte
 		WITH circle AS (
 			SELECT ${cleanId}::char(10) AS userid
 			UNION
-			SELECT mateuserid AS userid FROM user_bookmate WHERE userid = ${cleanId}
+			SELECT sobatuserid AS userid FROM user_sobat WHERE userid = ${cleanId}
 		),
 		events AS (
 			SELECT
@@ -152,12 +152,12 @@ export async function fetchBookmateFeed(userId: string): Promise<BookmateFeedIte
 			e.badge_emoji AS "badgeEmoji",
 			e.occurred_at AS "occurredAt",
 			COALESCE((
-				SELECT COUNT(*)::int FROM bookmate_celebration bc
-				WHERE bc.activitykey = e.activity_key
+				SELECT COUNT(*)::int FROM sobat_celebration sc
+				WHERE sc.activitykey = e.activity_key
 			), 0) AS "celebrations",
 			EXISTS (
-				SELECT 1 FROM bookmate_celebration bc
-				WHERE bc.activitykey = e.activity_key AND bc.userid = ${cleanId}
+				SELECT 1 FROM sobat_celebration sc
+				WHERE sc.activitykey = e.activity_key AND sc.userid = ${cleanId}
 			) AS "hasCelebrated"
 		FROM events e
 		ORDER BY e.occurred_at DESC
@@ -183,7 +183,7 @@ export async function fetchBookmateFeed(userId: string): Promise<BookmateFeedIte
 	});
 }
 
-export async function fetchBookmateLeaderboard(userId: string): Promise<BookmateLeaderboardRow[]> {
+export async function fetchSobatLeaderboard(userId: string): Promise<SobatLeaderboardRow[]> {
 	const sql = getDb();
 	if (!sql) return [];
 
@@ -192,7 +192,7 @@ export async function fetchBookmateLeaderboard(userId: string): Promise<Bookmate
 		WITH circle AS (
 			SELECT ${cleanId}::char(10) AS userid
 			UNION
-			SELECT mateuserid AS userid FROM user_bookmate WHERE userid = ${cleanId}
+			SELECT sobatuserid AS userid FROM user_sobat WHERE userid = ${cleanId}
 		)
 		SELECT
 			u.userid AS "userId",
@@ -229,7 +229,7 @@ export async function fetchBookmateLeaderboard(userId: string): Promise<Bookmate
 	});
 }
 
-export async function fetchBookmateDirectory(userId: string): Promise<BookmateDirectoryUser[]> {
+export async function fetchSobatDirectory(userId: string): Promise<SobatDirectoryUser[]> {
 	const sql = getDb();
 	if (!sql) return [];
 
@@ -241,8 +241,8 @@ export async function fetchBookmateDirectory(userId: string): Promise<BookmateDi
 			u.useremail AS "userEmail",
 			u.currentstreak AS "streakDays",
 			EXISTS (
-				SELECT 1 FROM user_bookmate ubm
-				WHERE ubm.userid = ${cleanId} AND ubm.mateuserid = u.userid
+				SELECT 1 FROM user_sobat us
+				WHERE us.userid = ${cleanId} AND us.sobatuserid = u.userid
 			) AS "isFollowing",
 			COALESCE((
 				SELECT COUNT(*)::int
@@ -279,36 +279,36 @@ export async function fetchBookmateDirectory(userId: string): Promise<BookmateDi
 	});
 }
 
-export async function toggleFollowBookmate(
+export async function toggleFollowSobat(
 	userId: string,
-	mateUserId: string
+	sobatUserId: string
 ): Promise<{ isFollowing: boolean }> {
 	const cleanId = userId.trim();
-	const cleanMateId = mateUserId.trim();
-	if (!cleanMateId || cleanId === cleanMateId) {
-		throw new Error('Invalid bookmate ID.');
+	const cleanSobatId = sobatUserId.trim();
+	if (!cleanSobatId || cleanId === cleanSobatId) {
+		throw new Error('Invalid sobat ID.');
 	}
 
 	const sql = getDb();
 	if (!sql) return { isFollowing: true };
 
 	const [existing] = await sql`
-		SELECT 1 FROM user_bookmate
-		WHERE userid = ${cleanId} AND mateuserid = ${cleanMateId}
+		SELECT 1 FROM user_sobat
+		WHERE userid = ${cleanId} AND sobatuserid = ${cleanSobatId}
 		LIMIT 1
 	`;
 
 	if (existing) {
 		await sql`
-			DELETE FROM user_bookmate
-			WHERE userid = ${cleanId} AND mateuserid = ${cleanMateId}
+			DELETE FROM user_sobat
+			WHERE userid = ${cleanId} AND sobatuserid = ${cleanSobatId}
 		`;
 		return { isFollowing: false };
 	}
 
 	await sql`
-		INSERT INTO user_bookmate (userid, mateuserid)
-		VALUES (${cleanId}, ${cleanMateId})
+		INSERT INTO user_sobat (userid, sobatuserid)
+		VALUES (${cleanId}, ${cleanSobatId})
 		ON CONFLICT DO NOTHING
 	`;
 	return { isFollowing: true };
@@ -326,7 +326,7 @@ export async function toggleCelebrateActivity(
 	if (!sql) return { hasCelebrated: true, celebrations: 1 };
 
 	const [existing] = await sql`
-		SELECT 1 FROM bookmate_celebration
+		SELECT 1 FROM sobat_celebration
 		WHERE userid = ${cleanId} AND activitykey = ${cleanKey}
 		LIMIT 1
 	`;
@@ -334,13 +334,13 @@ export async function toggleCelebrateActivity(
 	let hasCelebrated: boolean;
 	if (existing) {
 		await sql`
-			DELETE FROM bookmate_celebration
+			DELETE FROM sobat_celebration
 			WHERE userid = ${cleanId} AND activitykey = ${cleanKey}
 		`;
 		hasCelebrated = false;
 	} else {
 		await sql`
-			INSERT INTO bookmate_celebration (userid, activitykey)
+			INSERT INTO sobat_celebration (userid, activitykey)
 			VALUES (${cleanId}, ${cleanKey})
 			ON CONFLICT DO NOTHING
 		`;
@@ -348,7 +348,7 @@ export async function toggleCelebrateActivity(
 	}
 
 	const [countRow] = await sql`
-		SELECT COUNT(*)::int AS cnt FROM bookmate_celebration
+		SELECT COUNT(*)::int AS cnt FROM sobat_celebration
 		WHERE activitykey = ${cleanKey}
 	`;
 

@@ -44,7 +44,7 @@
 	<!-- Progress Header -->
 	<div class="space-y-2.5">
 		<div class="flex items-center justify-between text-xs font-extrabold text-zinc-400">
-			<span class="text-accent">kutubuku</span>
+			<img src="/brand/logo-full-teal.svg" alt="Kutubuku" class="h-6 w-auto" />
 			<span>Step {step} of 2</span>
 		</div>
 		<div class="h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">

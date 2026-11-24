@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { toggleCelebrateActivity, toggleFollowBookmate } from '$lib/server/bookmates';
+import { toggleCelebrateActivity, toggleFollowSobat } from '$lib/server/sobat';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -9,8 +9,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	try {
 		const body = await request.json();
-		if (body.action === 'follow' && typeof body.mateUserId === 'string') {
-			const res = await toggleFollowBookmate(locals.user.userId, body.mateUserId);
+		if (body.action === 'follow' && typeof body.sobatUserId === 'string') {
+			const res = await toggleFollowSobat(locals.user.userId, body.sobatUserId);
 			return json({ ok: true, ...res });
 		}
 		if (body.action === 'celebrate' && typeof body.activityKey === 'string') {

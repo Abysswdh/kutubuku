@@ -20,10 +20,10 @@
 			match: (path: string) => path.startsWith("/planner"),
 		},
 		{
-			id: "bros",
-			label: "Bookmates",
-			href: "/bros",
-			match: (path: string) => path.startsWith("/bros"),
+			id: "sobat",
+			label: "Sobat",
+			href: "/sobat",
+			match: (path: string) => path.startsWith("/sobat"),
 		},
 		{
 			id: "profile",
@@ -61,34 +61,19 @@
 	<!-- Brand Header -->
 	<a
 		href="/"
-		class="mb-6 flex items-center justify-center rounded-xl px-2 py-1.5 text-accent focus:outline-hidden lg:justify-start lg:px-3"
+		class="mb-6 flex items-center justify-center rounded-xl px-2 py-1.5 focus:outline-hidden lg:justify-start lg:px-3"
 		aria-label="Kutubuku Home"
 	>
-		<!-- Icon shown on tablet/Kindle rail (and alongside text on desktop) -->
-		<div
-			class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-white shadow-2xs lg:mr-2.5 lg:h-8 lg:w-8"
-		>
-			<svg
-				class="h-5 w-5 lg:h-4 lg:w-4"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-				<path
-					d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
-				/>
-			</svg>
-		</div>
-		<span
-			class="hidden text-2xl font-black tracking-tight text-accent lg:inline"
-		>
-			kutubuku
-		</span>
+		<img
+			src="/brand/logo-mark-teal.svg"
+			alt="Kutubuku"
+			class="h-8 w-8 object-contain lg:hidden"
+		/>
+		<img
+			src="/brand/logo-full-teal.svg"
+			alt="Kutubuku"
+			class="hidden h-8 w-auto lg:block"
+		/>
 	</a>
 
 	<!-- Nav Links -->
@@ -143,7 +128,7 @@
 						<line x1="8" y1="2" x2="8" y2="6" />
 						<line x1="3" y1="10" x2="21" y2="10" />
 					</svg>
-				{:else if item.id === "bros"}
+				{:else if item.id === "sobat"}
 					<svg
 						class="h-6 w-6 shrink-0"
 						viewBox="0 0 24 24"
@@ -244,7 +229,7 @@
 					<line x1="8" y1="2" x2="8" y2="6" />
 					<line x1="3" y1="10" x2="21" y2="10" />
 				</svg>
-			{:else if item.id === "bros"}
+			{:else if item.id === "sobat"}
 				<svg
 					class="h-6 w-6"
 					viewBox="0 0 24 24"

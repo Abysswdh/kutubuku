@@ -24,8 +24,8 @@
 
 <div class="space-y-6">
 	<!-- Brand Header -->
-	<div class="text-center space-y-1.5">
-		<div class="text-3xl font-black tracking-tight text-accent">kutubuku</div>
+	<div class="text-center space-y-2.5">
+		<img src="/brand/logo-full-teal.svg" alt="Kutubuku" class="mx-auto h-11 w-auto" />
 		<p class="text-sm font-semibold text-zinc-500">
 			Build a daily reading streak with the books you already own.
 		</p>

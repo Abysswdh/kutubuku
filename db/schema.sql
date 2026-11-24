@@ -224,22 +224,22 @@ CREATE INDEX idx_progress_log_userbook_date ON progress_log( userBookID, logDate
 CREATE INDEX idx_schedule_day_date ON schedule_day( scheduledDate, status );
 
 -- ============================================================================
--- Social Bookmates Extension (Friends / Following + Activity Celebrations)
+-- Social Sobat Extension (Friends / Following + Activity Celebrations)
 -- ============================================================================
 
-CREATE TABLE user_bookmate
+CREATE TABLE user_sobat
 (
     userID CHAR( 10 ) NOT NULL,
-    mateUserID CHAR( 10 ) NOT NULL,
+    sobatUserID CHAR( 10 ) NOT NULL,
     createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    PRIMARY KEY( userID, mateUserID ),
+    PRIMARY KEY( userID, sobatUserID ),
     FOREIGN KEY( userID ) REFERENCES app_user( userID ) ON DELETE CASCADE,
-    FOREIGN KEY( mateUserID ) REFERENCES app_user( userID ) ON DELETE CASCADE,
-    CHECK ( userID <> mateUserID )
+    FOREIGN KEY( sobatUserID ) REFERENCES app_user( userID ) ON DELETE CASCADE,
+    CHECK ( userID <> sobatUserID )
 );
 
-CREATE TABLE bookmate_celebration
+CREATE TABLE sobat_celebration
 (
     userID CHAR( 10 ) NOT NULL,
     activityKey VARCHAR( 64 ) NOT NULL,
@@ -249,5 +249,5 @@ CREATE TABLE bookmate_celebration
     FOREIGN KEY( userID ) REFERENCES app_user( userID ) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_user_bookmate_mate ON user_bookmate( mateUserID );
-CREATE INDEX idx_bookmate_celebration_key ON bookmate_celebration( activityKey );
+CREATE INDEX idx_user_sobat_sobat ON user_sobat( sobatUserID );
+CREATE INDEX idx_sobat_celebration_key ON sobat_celebration( activityKey );

@@ -26,7 +26,7 @@
 		if (busyKey) return;
 		busyKey = activityKey;
 		try {
-			await fetch('/api/bookmates', {
+			await fetch('/api/sobat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ action: 'celebrate', activityKey })
@@ -37,14 +37,14 @@
 		}
 	}
 
-	async function handleFollow(mateUserId: string) {
+	async function handleFollow(sobatUserId: string) {
 		if (busyKey) return;
-		busyKey = mateUserId;
+		busyKey = sobatUserId;
 		try {
-			await fetch('/api/bookmates', {
+			await fetch('/api/sobat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'follow', mateUserId })
+				body: JSON.stringify({ action: 'follow', sobatUserId })
 			});
 			await invalidateAll();
 		} finally {
@@ -63,7 +63,7 @@
 <div class="space-y-5">
 	<!-- Header -->
 	<div class="flex items-center justify-between">
-		<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">Bookmates</h1>
+		<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">Sobat</h1>
 		<span class="rounded-lg bg-accent-subtle px-2.5 py-1 text-xs font-extrabold text-accent-text">
 			{followingCount} following
 		</span>
@@ -106,9 +106,9 @@
 			<section class="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-6 text-center space-y-3">
 				<div class="text-3xl" aria-hidden="true">📚</div>
 				<div class="space-y-1">
-					<h2 class="text-sm font-extrabold text-zinc-900">Your bookmate feed is quiet</h2>
+					<h2 class="text-sm font-extrabold text-zinc-900">Your sobat feed is quiet</h2>
 					<p class="text-xs font-medium text-zinc-500">
-						Follow a few bookmates or log a reading session to see updates here.
+						Follow a few sobat or log a reading session to see updates here.
 					</p>
 				</div>
 				<button
@@ -116,7 +116,7 @@
 					onclick={() => (activeTab = 'find')}
 					class="rounded-xl bg-accent px-4 py-2 text-xs font-extrabold text-white transition hover:bg-accent-hover"
 				>
-					Find Bookmates →
+					Find Sobat →
 				</button>
 			</section>
 		{:else}
@@ -200,7 +200,7 @@
 						onclick={() => (activeTab = 'find')}
 						class="text-xs font-extrabold text-accent hover:underline"
 					>
-						+ Add bookmates
+						+ Add sobat
 					</button>
 				{/if}
 			</div>
@@ -245,18 +245,18 @@
 			</div>
 		</section>
 	{:else}
-		<!-- Find Bookmates -->
+		<!-- Find Sobat -->
 		<section class="space-y-3.5">
 			<input
 				type="search"
 				bind:value={searchQuery}
-				placeholder="Search bookmates by name or email..."
+				placeholder="Search sobat by name or email..."
 				class="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 focus:border-accent focus:outline-none"
 			/>
 
 			{#if filteredDirectory.length === 0}
 				<div class="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-6 text-center text-xs font-bold text-zinc-400">
-					No bookmates matched “{searchQuery}”.
+					No sobat matched “{searchQuery}”.
 				</div>
 			{:else}
 				<div class="space-y-2.5">

@@ -33,7 +33,9 @@
 		<!-- Public Guest Top Bar -->
 		<header class="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur-xs">
 			<div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-				<a href="/" class="text-lg font-black tracking-tight text-accent">kutubuku</a>
+				<a href="/" aria-label="Kutubuku Home" class="flex items-center">
+					<img src="/brand/logo-full-teal.svg" alt="Kutubuku" class="h-8 w-auto" />
+				</a>
 				<div class="flex items-center gap-2.5 text-xs font-extrabold">
 					<a
 						href="/catalog"
@@ -73,8 +75,8 @@
 				<header class="border-b border-zinc-200/80 bg-white/90 backdrop-blur-xs sticky top-0 z-30">
 					<div class="mx-auto flex max-w-xl items-center justify-between px-4 py-2.5 text-xs font-extrabold">
 						<!-- Brand on mobile only (since sidebar is hidden on mobile) -->
-						<a href="/" class="text-base font-black tracking-tight text-accent md:hidden">
-							kutubuku
+						<a href="/" aria-label="Kutubuku Home" class="flex items-center md:hidden">
+							<img src="/brand/logo-full-teal.svg" alt="Kutubuku" class="h-7 w-auto" />
 						</a>
 
 						<div class="flex flex-1 items-center justify-end gap-5 md:justify-between">
