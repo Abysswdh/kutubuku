@@ -33,7 +33,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (!event.locals.user.onboarded && !isOnboardingRoute && !isAuthRoute && !isApiRoute) {
 			redirect(303, '/onboarding');
 		}
-		if (event.locals.user.onboarded && path === '/auth') {
+		if (event.locals.user.onboarded && (path === '/auth' || path === '/onboarding')) {
 			redirect(303, '/');
 		}
 	}

@@ -7,6 +7,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		redirect(303, '/auth');
 	}
+	if (locals.user.onboarded) {
+		redirect(303, '/');
+	}
 	return {
 		user: locals.user,
 		currentYear: new Date().getFullYear()

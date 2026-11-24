@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -110,13 +109,7 @@
 		<form
 			method="POST"
 			action={mode === 'register' ? '?/register' : '?/login'}
-			use:enhance={() => {
-				submitting = true;
-				return async ({ update }) => {
-					submitting = false;
-					await update();
-				};
-			}}
+			onsubmit={() => (submitting = true)}
 			class="space-y-3.5"
 		>
 			{#if mode === 'register'}

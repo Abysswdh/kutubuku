@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -59,13 +58,7 @@
 	<form
 		method="POST"
 		action="?/complete"
-		use:enhance={() => {
-			submitting = true;
-			return async ({ update }) => {
-				submitting = false;
-				await update();
-			};
-		}}
+		onsubmit={() => (submitting = true)}
 		class="rounded-2xl border-2 border-zinc-200 bg-white p-6 space-y-5"
 	>
 		<!-- Always submit step 1 values even while viewing step 2 -->
