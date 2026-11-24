@@ -1,5 +1,4 @@
 import {
-	fetchBooks,
 	fetchScheduleDays,
 	fetchUserStats,
 	fetchWeekDays,
@@ -7,21 +6,20 @@ import {
 } from '$lib/server/repository';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, parent }) => {
 	const userId = locals.user?.userId;
-	const [weekDays, weeklyPlan, scheduleDays, stats, books] = await Promise.all([
+	const [layoutData, weekDays, weeklyPlan, scheduleDays] = await Promise.all([
+		parent(),
 		fetchWeekDays(),
 		fetchWeeklyPlan(),
-		fetchScheduleDays(),
-		fetchUserStats(userId),
-		fetchBooks(userId)
+		fetchScheduleDays()
 	]);
 
 	return {
 		weekDays,
 		weeklyPlan,
 		scheduleDays,
-		stats,
-		books
+		stats: layoutData.stats ?? (await fetchUserStats(userId)),
+		books: layoutData.books
 	};
 };

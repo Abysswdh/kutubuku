@@ -39,11 +39,17 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		redirect(303, '/auth?error=google_failed');
 	}
 
-	const { user } = await findOrCreateGoogleUser({
-		googleSub: claims.sub,
-		email: claims.email,
-		name: claims.name ?? ''
-	});
+	let user;
+	try {
+		({ user } = await findOrCreateGoogleUser({
+			googleSub: claims.sub,
+			email: claims.email,
+			name: claims.name ?? ''
+		}));
+	} catch (err) {
+		console.error('[kutubuku/auth] Google user upsert failed:', err);
+		redirect(303, '/auth?error=google_failed');
+	}
 
 	createSessionCookie(cookies, user.userId, url.protocol === 'https:');
 	redirect(303, user.onboarded ? '/' : '/onboarding');

@@ -1,27 +1,23 @@
 import {
 	fetchBadges,
-	fetchBooks,
 	fetchReadingChallenge,
-	fetchRecentSessions,
 	fetchUserStats
 } from '$lib/server/repository';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, parent }) => {
 	const userId = locals.user?.userId;
-	const [stats, challenge, badges, books, recentSessions] = await Promise.all([
-		fetchUserStats(userId),
+	const [layoutData, challenge, badges] = await Promise.all([
+		parent(),
 		fetchReadingChallenge(userId),
-		fetchBadges(userId),
-		fetchBooks(userId),
-		fetchRecentSessions(5, userId)
+		fetchBadges(userId)
 	]);
 
 	return {
-		stats,
+		stats: layoutData.stats ?? (await fetchUserStats(userId)),
 		challenge,
 		badges,
-		books,
-		recentSessions
+		books: layoutData.books,
+		recentSessions: layoutData.recentSessions
 	};
 };

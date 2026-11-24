@@ -161,7 +161,7 @@ export async function fetchUserStats(userId = DEFAULT_USER_ID): Promise<UserStat
 
 		if (!user) return mockGetUserStats();
 
-		const totalXp = Number(user.totalXp) || 420;
+		const totalXp = Number(user.totalXp) || 0;
 		const currentLevel = Math.floor(totalXp / 200) + 1;
 
 		return {
@@ -301,7 +301,7 @@ export async function fetchSessionsForBook(bookId: string, userId = DEFAULT_USER
 			WHERE ub.userid = ${userId} AND (TRIM(ub.bookid) = ${bookId} OR TRIM(ub.userbookid) = ${bookId})
 			ORDER BY pl.logdate DESC, pl.createdat DESC
 		`;
-		if (rows.length === 0) return mockGetSessionsForBook(bookId);
+		if (rows.length === 0) return [];
 		return rows.map((r) => ({
 			id: String(r.id).trim(),
 			bookId: String(r.bookId).trim(),
@@ -341,7 +341,7 @@ export async function fetchRecentSessions(limit = 5, userId = DEFAULT_USER_ID): 
 			ORDER BY pl.logdate DESC, pl.createdat DESC
 			LIMIT ${limit}
 		`;
-		if (rows.length === 0) return mockGetRecentSessions(limit);
+		if (rows.length === 0) return [];
 		return rows.map((r) => ({
 			id: String(r.id).trim(),
 			bookId: String(r.bookId).trim(),
@@ -386,17 +386,30 @@ export async function createBookOnShelf(
 	if (!sql) return created;
 
 	try {
-		const [countRow] = await sql`SELECT COUNT(*)::int AS cnt FROM book`;
-		const nextNum = Number(countRow?.cnt ?? 10) + 1;
-		const bookId = `BK${String(nextNum).padStart(8, '0')}`;
-		const [ubCountRow] = await sql`SELECT COUNT(*)::int AS cnt FROM user_book`;
-		const userBookId = `UB${String(Number(ubCountRow?.cnt ?? 10) + 1).padStart(8, '0')}`;
+		const [bookMax] = await sql`SELECT COALESCE(MAX(SUBSTRING(bookid FROM 3)::int), 0) AS max_num FROM book`;
+		const bookId = `BK${String(Number(bookMax?.max_num ?? 0) + 1).padStart(8, '0')}`;
+		const [ubMax] = await sql`SELECT COALESCE(MAX(SUBSTRING(userbookid FROM 3)::int), 0) AS max_num FROM user_book`;
+		const userBookId = `UB${String(Number(ubMax?.max_num ?? 0) + 1).padStart(8, '0')}`;
 		const dbStatus = mapUiStatusToDb(created.status);
 
 		await sql`
 			INSERT INTO book (bookid, publisherid, title, isbn13, pagecount, description)
 			VALUES (${bookId}, 'PU00000001', ${created.title}, ${created.isbn13 ?? null}, ${created.totalPages}, ${created.genre ?? 'General'})
 		`;
+
+		if (created.author && created.author !== 'Unknown Author') {
+			const [existingAuthor] = await sql`
+				SELECT authorid FROM author WHERE LOWER(authorname) = ${created.author.toLowerCase()} LIMIT 1
+			`;
+			let authorId = existingAuthor?.authorid ? String(existingAuthor.authorid).trim() : null;
+			if (!authorId) {
+				const [auMax] = await sql`SELECT COALESCE(MAX(SUBSTRING(authorid FROM 3)::int), 0) AS max_num FROM author`;
+				authorId = `AU${String(Number(auMax?.max_num ?? 0) + 1).padStart(8, '0')}`;
+				await sql`INSERT INTO author (authorid, authorname) VALUES (${authorId}, ${created.author})`;
+			}
+			await sql`INSERT INTO book_author (bookid, authorid) VALUES (${bookId}, ${authorId}) ON CONFLICT DO NOTHING`;
+		}
+
 		await sql`
 			INSERT INTO user_book (userbookid, userid, bookid, status, currentpage, startdate)
 			VALUES (${userBookId}, ${userId}, ${bookId}, ${dbStatus}, 0, ${dbStatus === 'reading' ? new Date().toISOString().split('T')[0] : null})
