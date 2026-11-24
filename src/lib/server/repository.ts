@@ -443,6 +443,80 @@ export async function changeBookShelfStatus(
 	return updated;
 }
 
+export async function updateBookDetails(
+	input: {
+		bookId: string;
+		title: string;
+		author?: string;
+		totalPages: number;
+		currentPage?: number;
+		genre?: string;
+	},
+	userId = DEFAULT_USER_ID
+): Promise<void> {
+	const title = input.title.trim();
+	const author = input.author?.trim() || '';
+	const totalPages = Math.max(1, Math.round(input.totalPages));
+	const currentPage =
+		input.currentPage !== undefined
+			? Math.max(0, Math.min(totalPages, Math.round(input.currentPage)))
+			: undefined;
+	const genre = input.genre?.trim() || 'General';
+
+	if (!title) throw new Error('Book title is required.');
+
+	const sql = getDb();
+	if (!sql) return;
+
+	const [ub] = await sql`
+		SELECT ub.userbookid AS "userBookId", ub.bookid AS "bookId"
+		FROM user_book ub
+		WHERE ub.userid = ${userId} AND (TRIM(ub.bookid) = ${input.bookId} OR TRIM(ub.userbookid) = ${input.bookId})
+		LIMIT 1
+	`;
+	if (!ub) throw new Error('Book not found on your shelf.');
+
+	const bookId = String(ub.bookId).trim();
+
+	await sql`
+		UPDATE book
+		SET title = ${title}, pagecount = ${totalPages}, description = ${genre}
+		WHERE bookid = ${bookId}
+	`;
+
+	if (currentPage !== undefined) {
+		await sql`
+			UPDATE user_book
+			SET currentpage = ${currentPage}
+			WHERE userbookid = ${ub.userBookId}
+		`;
+	}
+
+	if (author) {
+		const [existingAuthor] = await sql`
+			SELECT authorid FROM author WHERE LOWER(authorname) = ${author.toLowerCase()} LIMIT 1
+		`;
+		let authorId = existingAuthor?.authorid ? String(existingAuthor.authorid).trim() : null;
+		if (!authorId) {
+			const [auMax] = await sql`SELECT COALESCE(MAX(SUBSTRING(authorid FROM 3)::int), 0) AS max_num FROM author`;
+			authorId = `AU${String(Number(auMax?.max_num ?? 0) + 1).padStart(8, '0')}`;
+			await sql`INSERT INTO author (authorid, authorname) VALUES (${authorId}, ${author})`;
+		}
+		await sql`DELETE FROM book_author WHERE bookid = ${bookId}`;
+		await sql`INSERT INTO book_author (bookid, authorid) VALUES (${bookId}, ${authorId}) ON CONFLICT DO NOTHING`;
+	}
+}
+
+export async function removeBookFromShelf(bookId: string, userId = DEFAULT_USER_ID): Promise<void> {
+	const sql = getDb();
+	if (!sql) return;
+
+	await sql`
+		DELETE FROM user_book
+		WHERE userid = ${userId} AND (TRIM(bookid) = ${bookId} OR TRIM(userbookid) = ${bookId})
+	`;
+}
+
 export async function createReadingSchedule(input: GenerateScheduleInput) {
 	return mockGenerateSchedule(input);
 }

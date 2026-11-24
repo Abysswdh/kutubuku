@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import BookCover from '$lib/components/BookCover.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import type { BookStatus, DropReason } from '$lib/types';
@@ -23,12 +23,77 @@
 	let isUpdatingStatus = $state(false);
 	let statusFeedback = $state<string | null>(null);
 
+	// Edit & Delete Book State
+	let showEditForm = $state(false);
+	let editTitle = $state('');
+	let editAuthor = $state('');
+	let editTotalPages = $state(1);
+	let editCurrentPage = $state(0);
+	let editGenre = $state('');
+	let isSavingEdit = $state(false);
+	let editError = $state<string | null>(null);
+	let confirmDelete = $state(false);
+	let isDeleting = $state(false);
+
 	$effect(() => {
 		selectedStatus = book.status;
 		if (book.dropReason) {
 			selectedDropReason = book.dropReason;
 		}
+		if (!showEditForm) {
+			editTitle = book.title;
+			editAuthor = book.author;
+			editTotalPages = book.totalPages;
+			editCurrentPage = book.currentPage;
+			editGenre = book.genre ?? '';
+		}
 	});
+
+	async function handleSaveEdit(e: SubmitEvent) {
+		e.preventDefault();
+		isSavingEdit = true;
+		editError = null;
+		try {
+			const res = await fetch('/api/books', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					bookId: book.id,
+					title: editTitle.trim(),
+					author: editAuthor.trim(),
+					totalPages: Number(editTotalPages),
+					currentPage: Number(editCurrentPage),
+					genre: editGenre.trim() || 'General'
+				})
+			});
+			const json = await res.json();
+			if (!json.ok) {
+				editError = json.error ?? 'Failed to update book.';
+				return;
+			}
+			showEditForm = false;
+			await invalidateAll();
+		} finally {
+			isSavingEdit = false;
+		}
+	}
+
+	async function handleDeleteBook() {
+		isDeleting = true;
+		try {
+			const res = await fetch('/api/books', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ bookId: book.id })
+			});
+			const json = await res.json();
+			if (json.ok) {
+				await goto('/', { invalidateAll: true });
+			}
+		} finally {
+			isDeleting = false;
+		}
+	}
 
 	// Toggle to view all vs only the 3 most recent sessions
 	let showAllSessions = $state(false);
@@ -150,10 +215,126 @@
 			<span>Dashboard</span>
 		</a>
 
-		<span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-			Book Details
-		</span>
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				onclick={() => {
+					showEditForm = !showEditForm;
+					confirmDelete = false;
+				}}
+				class="rounded-xl border-2 border-zinc-200 bg-white px-3 py-1.5 text-xs font-extrabold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+			>
+				{showEditForm ? 'Cancel Edit' : '✏️ Edit'}
+			</button>
+		</div>
 	</div>
+
+	{#if showEditForm}
+		<form
+			onsubmit={handleSaveEdit}
+			class="rounded-2xl border-2 border-accent/30 bg-white p-5 space-y-3.5"
+		>
+			<h2 class="text-sm font-extrabold text-zinc-900">Edit Book Details</h2>
+
+			{#if editError}
+				<div class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+					{editError}
+				</div>
+			{/if}
+
+			<div class="space-y-2.5">
+				<label class="block space-y-1">
+					<span class="text-xs font-extrabold text-zinc-600">Title</span>
+					<input
+						type="text"
+						required
+						bind:value={editTitle}
+						class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
+					/>
+				</label>
+
+				<div class="grid grid-cols-2 gap-2.5">
+					<label class="block space-y-1">
+						<span class="text-xs font-extrabold text-zinc-600">Author</span>
+						<input
+							type="text"
+							bind:value={editAuthor}
+							class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
+						/>
+					</label>
+					<label class="block space-y-1">
+						<span class="text-xs font-extrabold text-zinc-600">Genre</span>
+						<input
+							type="text"
+							bind:value={editGenre}
+							class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
+						/>
+					</label>
+				</div>
+
+				<div class="grid grid-cols-2 gap-2.5">
+					<label class="block space-y-1">
+						<span class="text-xs font-extrabold text-zinc-600">Current Page</span>
+						<input
+							type="number"
+							min="0"
+							max={editTotalPages}
+							bind:value={editCurrentPage}
+							class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
+						/>
+					</label>
+					<label class="block space-y-1">
+						<span class="text-xs font-extrabold text-zinc-600">Total Pages</span>
+						<input
+							type="number"
+							min="1"
+							required
+							bind:value={editTotalPages}
+							class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
+						/>
+					</label>
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100">
+				{#if !confirmDelete}
+					<button
+						type="button"
+						onclick={() => (confirmDelete = true)}
+						class="rounded-xl border-2 border-red-200 bg-red-50 px-3.5 py-2 text-xs font-extrabold text-red-600 hover:bg-red-100"
+					>
+						Remove from Shelf
+					</button>
+				{:else}
+					<div class="flex items-center gap-1.5">
+						<button
+							type="button"
+							disabled={isDeleting}
+							onclick={handleDeleteBook}
+							class="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 disabled:opacity-50"
+						>
+							{isDeleting ? 'Removing...' : 'Confirm Remove'}
+						</button>
+						<button
+							type="button"
+							onclick={() => (confirmDelete = false)}
+							class="rounded-xl border border-zinc-200 px-2.5 py-2 text-xs font-bold text-zinc-500"
+						>
+							Cancel
+						</button>
+					</div>
+				{/if}
+
+				<button
+					type="submit"
+					disabled={isSavingEdit}
+					class="rounded-xl bg-accent px-4 py-2 text-xs font-extrabold text-white hover:bg-accent-hover disabled:opacity-50"
+				>
+					{isSavingEdit ? 'Saving...' : 'Save Changes'}
+				</button>
+			</div>
+		</form>
+	{/if}
 
 	<!-- Book Header Card with Generated Genre-Based Cover -->
 	<header
