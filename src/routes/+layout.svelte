@@ -8,11 +8,10 @@
 
 	let stats = $derived(data.stats);
 	let dailyGoal = $derived(data.dailyGoal);
-	let hideChrome = $derived(
-		!data.user ||
-			page.url.pathname.startsWith('/auth') ||
-			page.url.pathname.startsWith('/onboarding')
+	let isAuthOrOnboarding = $derived(
+		page.url.pathname.startsWith('/auth') || page.url.pathname.startsWith('/onboarding')
 	);
+	let isGuestView = $derived(!data.user || page.url.pathname.startsWith('/u/'));
 </script>
 
 <svelte:head>
@@ -26,13 +25,46 @@
 <div
 	class="min-h-dvh bg-zinc-50 text-zinc-900 antialiased selection:bg-accent-muted selection:text-accent-text"
 >
-	{#if hideChrome}
+	{#if isAuthOrOnboarding}
 		<main class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-10">
+			{@render children()}
+		</main>
+	{:else if isGuestView}
+		<!-- Public Guest Top Bar -->
+		<header class="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur-xs">
+			<div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+				<a href="/" class="text-lg font-black tracking-tight text-accent">kutubuku</a>
+				<div class="flex items-center gap-2.5 text-xs font-extrabold">
+					<a
+						href="/catalog"
+						class="rounded-xl px-3 py-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+					>
+						Catalog
+					</a>
+					{#if data.user}
+						<a
+							href="/"
+							class="rounded-xl bg-accent px-3.5 py-2 text-white transition hover:bg-accent-hover"
+						>
+							My Journal →
+						</a>
+					{:else}
+						<a
+							href="/auth"
+							class="rounded-xl bg-accent px-3.5 py-2 text-white transition hover:bg-accent-hover"
+						>
+							Sign In
+						</a>
+					{/if}
+				</div>
+			</div>
+		</header>
+		<main class="mx-auto w-full max-w-3xl px-4 py-8">
 			{@render children()}
 		</main>
 	{:else}
 		<!-- Responsive Navigation: Left Sidebar (Desktop), Icon Rail (Tablet/Kindle), Bottom Bar (Phone) -->
-		<BottomNav currentPath={page.url.pathname} />
+		<BottomNav currentPath={page.url.pathname} isAdmin={data.user?.role === 'admin'} />
 
 		<!-- Main Content Wrapper offset by sidebar width on md/lg screens -->
 		<div class="md:pl-20 lg:pl-60">

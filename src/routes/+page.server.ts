@@ -1,3 +1,4 @@
+import { fetchVerifiedCatalog } from '$lib/server/catalog';
 import {
 	fetchBadges,
 	fetchDailyGoal,
@@ -7,7 +8,21 @@ import {
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
-	const userId = locals.user?.userId;
+	if (!locals.user) {
+		const featuredBooks = await fetchVerifiedCatalog(undefined, 6);
+		return {
+			isGuest: true as const,
+			featuredBooks,
+			stats: null,
+			dailyGoal: null,
+			currentlyReading: undefined,
+			weekDays: [],
+			badges: [],
+			books: []
+		};
+	}
+
+	const userId = locals.user.userId;
 	const [layoutData, weekDays, badges] = await Promise.all([
 		parent(),
 		fetchWeekDays(),
@@ -20,6 +35,8 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	const dailyGoal = layoutData.dailyGoal ?? (await fetchDailyGoal(userId));
 
 	return {
+		isGuest: false as const,
+		featuredBooks: [],
 		stats,
 		dailyGoal,
 		currentlyReading,

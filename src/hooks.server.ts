@@ -24,18 +24,37 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const path = event.url.pathname;
 	const isAuthRoute = path === '/auth' || path.startsWith('/auth/');
+	const isPublicGuestRoute =
+		path === '/' ||
+		path === '/catalog' ||
+		path.startsWith('/u/') ||
+		isAuthRoute;
 	const isOnboardingRoute = path === '/onboarding';
+	const isAdminRoute = path === '/admin' || path.startsWith('/admin/');
+	const isAdminApiRoute = path.startsWith('/api/admin/');
 	const isApiRoute = path.startsWith('/api/');
 
 	if (!event.locals.user) {
 		if (isApiRoute) {
 			return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 		}
-		if (!isAuthRoute) {
+		if (!isPublicGuestRoute) {
 			redirect(303, '/auth');
 		}
 	} else {
-		if (!event.locals.user.onboarded && !isOnboardingRoute && !isAuthRoute && !isApiRoute) {
+		if (isAdminApiRoute && event.locals.user.role !== 'admin') {
+			return json({ ok: false, error: 'Forbidden: Admin access required' }, { status: 403 });
+		}
+		if (isAdminRoute && event.locals.user.role !== 'admin') {
+			redirect(303, '/');
+		}
+		if (
+			!event.locals.user.onboarded &&
+			!isOnboardingRoute &&
+			!isAuthRoute &&
+			!isApiRoute &&
+			!path.startsWith('/u/')
+		) {
 			redirect(303, '/onboarding');
 		}
 		if (event.locals.user.onboarded && (path === '/auth' || path === '/onboarding')) {

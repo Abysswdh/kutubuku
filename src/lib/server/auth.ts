@@ -40,6 +40,7 @@ interface MockUserRecord {
 	userId: string;
 	userName: string;
 	userEmail: string;
+	role: 'user' | 'admin';
 	passwordHash: string;
 	timezone: string;
 	maxConcurrentBooks: number;
@@ -166,6 +167,7 @@ export async function findUserById(userId: string): Promise<SessionUser | null> 
 			userId: found.userId,
 			userName: found.userName,
 			userEmail: found.userEmail,
+			role: found.role,
 			timezone: found.timezone,
 			maxConcurrentBooks: found.maxConcurrentBooks,
 			onboarded: found.onboarded
@@ -177,6 +179,7 @@ export async function findUserById(userId: string): Promise<SessionUser | null> 
 			u.userid AS "userId",
 			u.username AS "userName",
 			u.useremail AS "userEmail",
+			COALESCE(u.role, 'user') AS "role",
 			u.timezone,
 			u.maxconcurrentbooks AS "maxConcurrentBooks",
 			EXISTS (
@@ -192,6 +195,7 @@ export async function findUserById(userId: string): Promise<SessionUser | null> 
 		userId: String(row.userId).trim(),
 		userName: row.userName,
 		userEmail: row.userEmail,
+		role: row.role === 'admin' ? 'admin' : 'user',
 		timezone: row.timezone,
 		maxConcurrentBooks: Number(row.maxConcurrentBooks),
 		onboarded: Boolean(row.onboarded)
@@ -219,6 +223,7 @@ export async function authenticateManualUser(
 				userId: found.userId,
 				userName: found.userName,
 				userEmail: found.userEmail,
+				role: found.role,
 				timezone: found.timezone,
 				maxConcurrentBooks: found.maxConcurrentBooks,
 				onboarded: found.onboarded
@@ -231,6 +236,7 @@ export async function authenticateManualUser(
 			u.userid AS "userId",
 			u.username AS "userName",
 			u.useremail AS "userEmail",
+			COALESCE(u.role, 'user') AS "role",
 			u.passwordhash AS "passwordHash",
 			u.timezone,
 			u.maxconcurrentbooks AS "maxConcurrentBooks",
@@ -255,6 +261,7 @@ export async function authenticateManualUser(
 			userId: String(row.userId).trim(),
 			userName: row.userName,
 			userEmail: row.userEmail,
+			role: row.role === 'admin' ? 'admin' : 'user',
 			timezone: row.timezone,
 			maxConcurrentBooks: Number(row.maxConcurrentBooks),
 			onboarded: Boolean(row.onboarded)
@@ -281,6 +288,7 @@ export async function registerManualUser(input: {
 			userId,
 			userName,
 			userEmail,
+			role: 'user',
 			passwordHash,
 			timezone: 'Asia/Jakarta',
 			maxConcurrentBooks: 3,
@@ -292,6 +300,7 @@ export async function registerManualUser(input: {
 				userId,
 				userName,
 				userEmail,
+				role: 'user',
 				timezone: record.timezone,
 				maxConcurrentBooks: record.maxConcurrentBooks,
 				onboarded: false
@@ -317,6 +326,7 @@ export async function registerManualUser(input: {
 			userId,
 			userName,
 			userEmail,
+			role: 'user',
 			timezone: 'Asia/Jakarta',
 			maxConcurrentBooks: 3,
 			onboarded: false
@@ -342,6 +352,7 @@ export async function findOrCreateGoogleUser(input: {
 					userId: existing.userId,
 					userName: existing.userName,
 					userEmail: existing.userEmail,
+					role: existing.role,
 					timezone: existing.timezone,
 					maxConcurrentBooks: existing.maxConcurrentBooks,
 					onboarded: existing.onboarded
@@ -354,6 +365,7 @@ export async function findOrCreateGoogleUser(input: {
 			userId,
 			userName: fallbackName,
 			userEmail,
+			role: 'user',
 			passwordHash: oauthMarker,
 			timezone: 'Asia/Jakarta',
 			maxConcurrentBooks: 3,
@@ -365,6 +377,7 @@ export async function findOrCreateGoogleUser(input: {
 				userId,
 				userName: fallbackName,
 				userEmail,
+				role: 'user',
 				timezone: record.timezone,
 				maxConcurrentBooks: record.maxConcurrentBooks,
 				onboarded: false
@@ -378,6 +391,7 @@ export async function findOrCreateGoogleUser(input: {
 			u.userid AS "userId",
 			u.username AS "userName",
 			u.useremail AS "userEmail",
+			COALESCE(u.role, 'user') AS "role",
 			u.timezone,
 			u.maxconcurrentbooks AS "maxConcurrentBooks",
 			EXISTS (
@@ -394,6 +408,7 @@ export async function findOrCreateGoogleUser(input: {
 				userId: String(existing.userId).trim(),
 				userName: existing.userName,
 				userEmail: existing.userEmail,
+				role: existing.role === 'admin' ? 'admin' : 'user',
 				timezone: existing.timezone,
 				maxConcurrentBooks: Number(existing.maxConcurrentBooks),
 				onboarded: Boolean(existing.onboarded)
@@ -413,6 +428,7 @@ export async function findOrCreateGoogleUser(input: {
 			userId,
 			userName: fallbackName,
 			userEmail,
+			role: 'user',
 			timezone: 'Asia/Jakarta',
 			maxConcurrentBooks: 3,
 			onboarded: false

@@ -1,16 +1,17 @@
 <script lang="ts">
 	interface Props {
 		currentPath?: string;
+		isAdmin?: boolean;
 	}
 
-	let { currentPath = "/" }: Props = $props();
+	let { currentPath = "/", isAdmin = false }: Props = $props();
 
-	const navItems = [
+	const baseNavItems = [
 		{
 			id: "journal",
 			label: "Journal",
 			href: "/",
-			match: (path: string) => path === "/" || path.startsWith("/books"),
+			match: (path: string) => path === "/" || path.startsWith("/books") || path.startsWith("/catalog"),
 		},
 		{
 			id: "planner",
@@ -31,6 +32,20 @@
 			match: (path: string) => path.startsWith("/profile"),
 		},
 	] as const;
+
+	let navItems = $derived(
+		isAdmin
+			? [
+					...baseNavItems,
+					{
+						id: "admin" as const,
+						label: "Admin",
+						href: "/admin",
+						match: (path: string) => path.startsWith("/admin"),
+					},
+				]
+			: [...baseNavItems]
+	);
 </script>
 
 <!-- 
@@ -158,6 +173,19 @@
 						<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
 						<circle cx="12" cy="7" r="4" />
 					</svg>
+				{:else if item.id === "admin"}
+					<svg
+						class="h-6 w-6 shrink-0"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+					</svg>
 				{/if}
 
 				<span class="hidden lg:inline">{item.label}</span>
@@ -245,6 +273,19 @@
 				>
 					<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
 					<circle cx="12" cy="7" r="4" />
+				</svg>
+			{:else if item.id === "admin"}
+				<svg
+					class="h-6 w-6"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
 				</svg>
 			{/if}
 			<span class="mt-0.5 text-[10px] font-bold">{item.label}</span>

@@ -8,6 +8,7 @@ declare global {
 				userId: string;
 				userName: string;
 				userEmail: string;
+				role: 'user' | 'admin';
 				timezone: string;
 				maxConcurrentBooks: number;
 				onboarded: boolean;

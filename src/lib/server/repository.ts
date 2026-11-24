@@ -393,8 +393,8 @@ export async function createBookOnShelf(
 		const dbStatus = mapUiStatusToDb(created.status);
 
 		await sql`
-			INSERT INTO book (bookid, publisherid, title, isbn13, pagecount, description)
-			VALUES (${bookId}, 'PU00000001', ${created.title}, ${created.isbn13 ?? null}, ${created.totalPages}, ${created.genre ?? 'General'})
+			INSERT INTO book (bookid, publisherid, title, isbn13, pagecount, description, verificationstatus)
+			VALUES (${bookId}, 'PU00000001', ${created.title}, ${created.isbn13 ?? null}, ${created.totalPages}, ${created.genre ?? 'General'}, 'pending')
 		`;
 
 		if (created.author && created.author !== 'Unknown Author') {

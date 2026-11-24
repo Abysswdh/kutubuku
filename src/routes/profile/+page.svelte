@@ -13,6 +13,18 @@
 
 	let xpInCurrentTier = $derived(stats.totalXp % 200);
 	let completedBooksCount = $derived(books.filter((b) => b.status === 'completed').length);
+	let copiedShare = $state(false);
+
+	async function handleShareProfile() {
+		const shareUrl = `${window.location.origin}/u/${stats.id}`;
+		try {
+			await navigator.clipboard.writeText(shareUrl);
+			copiedShare = true;
+			setTimeout(() => (copiedShare = false), 2500);
+		} catch {
+			window.open(shareUrl, '_blank');
+		}
+	}
 	let initials = $derived(
 		(stats.userName ?? 'Reader')
 			.split(/\s+/)
@@ -28,14 +40,23 @@
 		<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">
 			Profile
 		</h1>
-		<form method="POST" action="/auth/logout">
+		<div class="flex items-center gap-2">
 			<button
-				type="submit"
-				class="rounded-xl border-2 border-zinc-200 bg-white px-3 py-1.5 text-xs font-extrabold text-zinc-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+				type="button"
+				onclick={handleShareProfile}
+				class="rounded-xl border-2 border-accent/30 bg-accent-subtle px-3 py-1.5 text-xs font-extrabold text-accent-text transition hover:bg-accent-muted"
 			>
-				Sign Out
+				{copiedShare ? '✓ Link Copied!' : '🔗 Share'}
 			</button>
-		</form>
+			<form method="POST" action="/auth/logout">
+				<button
+					type="submit"
+					class="rounded-xl border-2 border-zinc-200 bg-white px-3 py-1.5 text-xs font-extrabold text-zinc-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+				>
+					Sign Out
+				</button>
+			</form>
+		</div>
 	</div>
 
 	<!-- Simple User Header Card -->

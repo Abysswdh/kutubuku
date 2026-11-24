@@ -12,8 +12,12 @@
 	let currentlyReading = $derived(data.currentlyReading);
 	let books = $derived(data.books);
 
-	let isGoalReached = $derived(stats.todayPagesRead >= dailyGoal.targetPages);
-	let pagesRemaining = $derived(Math.max(0, dailyGoal.targetPages - stats.todayPagesRead));
+	let isGoalReached = $derived(
+		Boolean(stats && dailyGoal && stats.todayPagesRead >= dailyGoal.targetPages)
+	);
+	let pagesRemaining = $derived(
+		stats && dailyGoal ? Math.max(0, dailyGoal.targetPages - stats.todayPagesRead) : 0
+	);
 
 	// Filter state
 	type FilterTab = 'all' | BookStatus;
@@ -82,21 +86,116 @@
 	}
 </script>
 
+{#if data.isGuest}
+	<!-- Public Guest Landing Page -->
+	<div class="space-y-10 py-4">
+		<section class="rounded-3xl border-2 border-zinc-200 bg-white p-7 text-center space-y-5 md:p-10">
+			<div class="inline-flex items-center gap-1.5 rounded-full bg-accent-subtle px-3 py-1 text-xs font-extrabold text-accent-text">
+				<span>📚</span>
+				<span>Gamified Reading Journal</span>
+			</div>
+
+			<h1 class="text-3xl font-black tracking-tight text-zinc-900 md:text-4xl">
+				Finish the books sitting on your shelf.
+			</h1>
+
+			<p class="mx-auto max-w-lg text-sm font-semibold text-zinc-500">
+				Kutubuku turns the physical and digital books you already own into a daily reading streak — with smart schedules, annual goals, and Bookmates cheering you on.
+			</p>
+
+			<div class="flex flex-wrap items-center justify-center gap-3 pt-1">
+				<a
+					href="/auth"
+					class="rounded-2xl bg-accent px-6 py-3 text-sm font-extrabold text-white transition hover:bg-accent-hover"
+				>
+					Start Reading Free →
+				</a>
+				<a
+					href="/catalog"
+					class="rounded-2xl border-2 border-zinc-200 bg-white px-5 py-3 text-sm font-extrabold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+				>
+					Browse Verified Books
+				</a>
+			</div>
+		</section>
+
+		<!-- 3 Value Props -->
+		<section class="grid gap-3.5 md:grid-cols-3">
+			<div class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-1.5">
+				<div class="text-2xl" aria-hidden="true">🔥</div>
+				<h2 class="text-sm font-extrabold text-zinc-900">Daily Streaks & XP</h2>
+				<p class="text-xs font-medium text-zinc-500">
+					Log pages in seconds, hit your daily target, and unlock milestone badges.
+				</p>
+			</div>
+			<div class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-1.5">
+				<div class="text-2xl" aria-hidden="true">📅</div>
+				<h2 class="text-sm font-extrabold text-zinc-900">Anti-Tsundoku Planner</h2>
+				<p class="text-xs font-medium text-zinc-500">
+					Limit concurrent books and pace your pages so every book reaches the last page.
+				</p>
+			</div>
+			<div class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-1.5">
+				<div class="text-2xl" aria-hidden="true">🎉</div>
+				<h2 class="text-sm font-extrabold text-zinc-900">Bookmates & Shareable Cards</h2>
+				<p class="text-xs font-medium text-zinc-500">
+					Follow friends, celebrate milestones, and share your public reader profile link.
+				</p>
+			</div>
+		</section>
+
+		<!-- Live Verified Catalog Preview -->
+		{#if data.featuredBooks.length > 0}
+			<section class="space-y-3.5">
+				<div class="flex items-center justify-between">
+					<h2 class="text-xs font-extrabold tracking-wider text-zinc-400 uppercase">
+						Verified Book Catalog
+					</h2>
+					<a href="/catalog" class="text-xs font-extrabold text-accent hover:underline">
+						View all →
+					</a>
+				</div>
+				<div class="grid gap-3 sm:grid-cols-2">
+					{#each data.featuredBooks as item (item.bookId)}
+						<div class="rounded-2xl border-2 border-zinc-200 bg-white p-4 space-y-1.5">
+							<div class="flex items-center justify-between gap-2">
+								<span class="rounded-md bg-accent-subtle px-2 py-0.5 text-[10px] font-extrabold text-accent-text uppercase">
+									{item.genre}
+								</span>
+								<span class="text-[11px] font-bold text-zinc-400">{item.pageCount}p</span>
+							</div>
+							<h3 class="truncate text-sm font-extrabold text-zinc-900">{item.title}</h3>
+							<p class="truncate text-xs font-semibold text-zinc-500">{item.author}</p>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+	</div>
+{:else if stats && dailyGoal}
 <div class="space-y-6">
 	<!-- Header with Quick Add Book Button -->
-	<div class="flex items-center justify-between">
+	<div class="flex items-center justify-between gap-2">
 		<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">
 			Reading Journal
 		</h1>
-		<button
-			type="button"
-			onclick={() => (showAddForm = !showAddForm)}
-			class="rounded-xl border-2 px-3.5 py-2 text-xs font-extrabold transition {showAddForm
-				? 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
-				: 'border-accent bg-accent text-white hover:bg-accent-hover'}"
-		>
-			{showAddForm ? 'Close' : '+ Add Book'}
-		</button>
+		<div class="flex items-center gap-2">
+			<a
+				href="/catalog"
+				class="rounded-xl border-2 border-zinc-200 bg-white px-3 py-2 text-xs font-extrabold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
+			>
+				Catalog
+			</a>
+			<button
+				type="button"
+				onclick={() => (showAddForm = !showAddForm)}
+				class="rounded-xl border-2 px-3.5 py-2 text-xs font-extrabold transition {showAddForm
+					? 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
+					: 'border-accent bg-accent text-white hover:bg-accent-hover'}"
+			>
+				{showAddForm ? 'Close' : '+ Add Book'}
+			</button>
+		</div>
 	</div>
 
 	<!-- Expandable Add Book Card -->
@@ -279,3 +378,4 @@
 		{/if}
 	</section>
 </div>
+{/if}

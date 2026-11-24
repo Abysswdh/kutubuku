@@ -42,6 +42,8 @@ CREATE TABLE book
     publishDate DATE,
     pageCount INT NOT NULL CHECK ( pageCount > 0 ),
     description TEXT,
+    verificationStatus VARCHAR( 12 ) NOT NULL DEFAULT 'verified'
+        CHECK ( verificationStatus IN ( 'pending', 'verified', 'rejected' ) ),
 
     PRIMARY KEY( bookID ),
     FOREIGN KEY( publisherID ) REFERENCES publisher( publisherID )
@@ -73,6 +75,8 @@ CREATE TABLE app_user
     userName VARCHAR( 100 ) NOT NULL,
     userEmail VARCHAR( 100 ) NOT NULL UNIQUE,
     passwordHash VARCHAR( 255 ) NOT NULL,
+    role VARCHAR( 10 ) NOT NULL DEFAULT 'user'
+        CHECK ( role IN ( 'user', 'admin' ) ),
     registerDate DATE NOT NULL DEFAULT CURRENT_DATE,
 
     timezone VARCHAR( 50 ) NOT NULL DEFAULT 'Asia/Jakarta',

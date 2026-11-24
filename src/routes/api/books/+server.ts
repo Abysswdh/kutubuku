@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { addExistingCatalogBookToShelf } from '$lib/server/catalog';
 import {
 	changeBookShelfStatus,
 	createBookOnShelf,
@@ -10,6 +11,14 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const body = await request.json();
+		if (typeof body.existingBookId === 'string' && body.existingBookId.trim() && locals.user) {
+			await addExistingCatalogBookToShelf(
+				body.existingBookId,
+				locals.user.userId,
+				body.status === 'reading' ? 'reading' : 'planned'
+			);
+			return json({ ok: true });
+		}
 		const book = await createBookOnShelf(body, locals.user?.userId);
 		return json({ ok: true, book });
 	} catch (err) {
