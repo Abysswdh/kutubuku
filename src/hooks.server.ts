@@ -6,11 +6,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const userId = readSessionUserId(event.cookies);
 
 	if (userId) {
-		const user = await findUserById(userId);
-		if (user) {
-			event.locals.user = user;
-		} else {
-			clearSessionCookie(event.cookies);
+		try {
+			const user = await findUserById(userId);
+			if (user) {
+				event.locals.user = user;
+			} else {
+				clearSessionCookie(event.cookies);
+				event.locals.user = null;
+			}
+		} catch (err) {
+			console.error('[kutubuku/auth] Failed to resolve session user:', err);
 			event.locals.user = null;
 		}
 	} else {

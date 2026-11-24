@@ -47,8 +47,10 @@ export function getDb(): ReturnType<typeof postgres> | null {
 		// prepare: false is required for Supabase Transaction Pooler (port 6543) on Vercel Serverless
 		sqlInstance = postgres(dbUrl, {
 			prepare: false,
-			max: 5,
-			idle_timeout: 20
+			max: 3,
+			idle_timeout: 5,
+			connect_timeout: 10,
+			max_lifetime: 300
 		});
 	}
 	return sqlInstance;

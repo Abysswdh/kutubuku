@@ -1,23 +1,23 @@
 import {
 	fetchBadges,
-	fetchBooks,
-	fetchCurrentlyReading,
 	fetchDailyGoal,
 	fetchUserStats,
 	fetchWeekDays
 } from '$lib/server/repository';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, parent }) => {
 	const userId = locals.user?.userId;
-	const [stats, dailyGoal, currentlyReading, weekDays, badges, books] = await Promise.all([
-		fetchUserStats(userId),
-		fetchDailyGoal(userId),
-		fetchCurrentlyReading(userId),
+	const [layoutData, weekDays, badges] = await Promise.all([
+		parent(),
 		fetchWeekDays(),
-		fetchBadges(userId),
-		fetchBooks(userId)
+		fetchBadges(userId)
 	]);
+
+	const books = layoutData.books;
+	const currentlyReading = books.find((b) => b.status === 'reading');
+	const stats = layoutData.stats ?? (await fetchUserStats(userId));
+	const dailyGoal = layoutData.dailyGoal ?? (await fetchDailyGoal(userId));
 
 	return {
 		stats,
