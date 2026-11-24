@@ -6,5 +6,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
 		redirect(303, '/');
 	}
-	return await fetchAdminDashboard();
+	return {
+		...(await fetchAdminDashboard()),
+		currentUserId: locals.user.userId
+	};
 };

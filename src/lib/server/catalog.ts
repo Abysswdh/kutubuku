@@ -49,6 +49,26 @@ export interface AdminStats {
 	totalPagesLogged: number;
 }
 
+export interface AdminUserRow {
+	userId: string;
+	userName: string;
+	userEmail: string;
+	role: 'user' | 'admin';
+	authMethod: 'google' | 'email';
+	registerDate: string;
+	booksCount: number;
+	streakDays: number;
+}
+
+export interface AdminBadgeRow {
+	badgeId: string;
+	badgeName: string;
+	description: string;
+	criteriaType: 'streak_days' | 'books_finished' | 'pages_read';
+	criteriaValue: number;
+	unlockedCount: number;
+}
+
 function getInitials(name: string): string {
 	return (
 		name
@@ -308,16 +328,20 @@ export async function fetchPublicProfile(userId: string): Promise<PublicProfileD
 export async function fetchAdminDashboard(): Promise<{
 	stats: AdminStats;
 	books: CatalogBook[];
+	users: AdminUserRow[];
+	badges: AdminBadgeRow[];
 }> {
 	const sql = getDb();
 	if (!sql) {
 		return {
 			stats: { pendingBooks: 0, verifiedBooks: 0, totalUsers: 0, totalPagesLogged: 0 },
-			books: []
+			books: [],
+			users: [],
+			badges: []
 		};
 	}
 
-	const [statsRows, bookRows] = await Promise.all([
+	const [statsRows, bookRows, userRows, badgeRows] = await Promise.all([
 		sql`
 			SELECT
 				(SELECT COUNT(*)::int FROM book WHERE verificationstatus = 'pending') AS "pendingBooks",
@@ -359,6 +383,31 @@ export async function fetchAdminDashboard(): Promise<{
 				END,
 				b.bookid DESC
 			LIMIT 100
+		`,
+		sql`
+			SELECT
+				u.userid AS "userId",
+				u.username AS "userName",
+				u.useremail AS "userEmail",
+				COALESCE(u.role, 'user') AS "role",
+				u.passwordhash AS "passwordHash",
+				u.registerdate AS "registerDate",
+				u.currentstreak AS "streakDays",
+				(SELECT COUNT(*)::int FROM user_book ub WHERE ub.userid = u.userid) AS "booksCount"
+			FROM app_user u
+			ORDER BY CASE COALESCE(u.role, 'user') WHEN 'admin' THEN 0 ELSE 1 END, u.userid DESC
+			LIMIT 100
+		`,
+		sql`
+			SELECT
+				b.badgeid AS "badgeId",
+				b.badgename AS "badgeName",
+				b.description,
+				b.criteriatype AS "criteriaType",
+				b.criteriavalue AS "criteriaValue",
+				(SELECT COUNT(*)::int FROM user_badge ub WHERE ub.badgeid = b.badgeid) AS "unlockedCount"
+			FROM badge b
+			ORDER BY b.criteriatype ASC, b.criteriavalue ASC
 		`
 	]);
 
@@ -380,6 +429,24 @@ export async function fetchAdminDashboard(): Promise<{
 			pageCount: Number(r.pageCount),
 			verificationStatus: (r.verificationStatus as VerificationStatus) ?? 'verified',
 			onShelf: false
+		})),
+		users: userRows.map((u) => ({
+			userId: String(u.userId).trim(),
+			userName: u.userName,
+			userEmail: u.userEmail,
+			role: u.role === 'admin' ? 'admin' : 'user',
+			authMethod: String(u.passwordHash ?? '').startsWith('oauth:google:') ? 'google' : 'email',
+			registerDate: new Date(u.registerDate).toISOString().split('T')[0],
+			booksCount: Number(u.booksCount),
+			streakDays: Number(u.streakDays)
+		})),
+		badges: badgeRows.map((b) => ({
+			badgeId: String(b.badgeId).trim(),
+			badgeName: b.badgeName,
+			description: b.description,
+			criteriaType: b.criteriaType as AdminBadgeRow['criteriaType'],
+			criteriaValue: Number(b.criteriaValue),
+			unlockedCount: Number(b.unlockedCount)
 		}))
 	};
 }
@@ -474,4 +541,74 @@ export async function adminModerateBook(input: {
 			await sql`INSERT INTO book_genre (bookid, genreid) VALUES (${bookId}, ${genreId}) ON CONFLICT DO NOTHING`;
 		}
 	}
+}
+
+export async function adminDeleteBook(bookId: string): Promise<void> {
+	const sql = getDb();
+	if (!sql) throw new Error('Database not connected.');
+
+	const cleanBookId = bookId.trim();
+	if (!cleanBookId) throw new Error('bookId is required.');
+
+	// Remove user_book links first (user_book.bookID does not have ON DELETE CASCADE)
+	await sql`DELETE FROM user_book WHERE bookid = ${cleanBookId}`;
+	await sql`DELETE FROM book WHERE bookid = ${cleanBookId}`;
+}
+
+export async function adminSetUserRole(
+	targetUserId: string,
+	role: 'user' | 'admin',
+	actingAdminId: string
+): Promise<void> {
+	const sql = getDb();
+	if (!sql) throw new Error('Database not connected.');
+
+	const cleanTarget = targetUserId.trim();
+	if (cleanTarget === actingAdminId.trim() && role !== 'admin') {
+		throw new Error('You cannot revoke your own admin access.');
+	}
+
+	await sql`
+		UPDATE app_user
+		SET role = ${role}
+		WHERE userid = ${cleanTarget}
+	`;
+}
+
+export async function adminCreateBadge(input: {
+	badgeName: string;
+	description: string;
+	criteriaType: 'streak_days' | 'books_finished' | 'pages_read';
+	criteriaValue: number;
+}): Promise<string> {
+	const sql = getDb();
+	if (!sql) throw new Error('Database not connected.');
+
+	const badgeName = input.badgeName.trim();
+	const description = input.description.trim();
+	const criteriaValue = Math.max(1, Math.round(input.criteriaValue));
+
+	if (!badgeName || !description) {
+		throw new Error('Badge name and description are required.');
+	}
+	if (!['streak_days', 'books_finished', 'pages_read'].includes(input.criteriaType)) {
+		throw new Error('Invalid criteria type.');
+	}
+
+	const [maxRow] = await sql`SELECT COALESCE(MAX(SUBSTRING(badgeid FROM 3)::int), 0) AS max_num FROM badge`;
+	const badgeId = `BD${String(Number(maxRow?.max_num ?? 0) + 1).padStart(8, '0')}`;
+	const iconMap = { streak_days: 'flame', books_finished: 'book', pages_read: 'pages' } as const;
+
+	await sql`
+		INSERT INTO badge (badgeid, badgename, description, iconurl, criteriatype, criteriavalue)
+		VALUES (${badgeId}, ${badgeName}, ${description}, ${iconMap[input.criteriaType]}, ${input.criteriaType}, ${criteriaValue})
+	`;
+
+	return badgeId;
+}
+
+export async function adminDeleteBadge(badgeId: string): Promise<void> {
+	const sql = getDb();
+	if (!sql) throw new Error('Database not connected.');
+	await sql`DELETE FROM badge WHERE badgeid = ${badgeId.trim()}`;
 }

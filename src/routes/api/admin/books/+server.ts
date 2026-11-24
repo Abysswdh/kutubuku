@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import {
 	adminCreateOfficialBook,
+	adminDeleteBook,
 	adminModerateBook,
 	type VerificationStatus
 } from '$lib/server/catalog';
@@ -53,6 +54,25 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		return json({ ok: true });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Failed to moderate book';
+		return json({ ok: false, error: message }, { status: 400 });
+	}
+};
+
+export const DELETE: RequestHandler = async ({ request, locals }) => {
+	if (!locals.user || locals.user.role !== 'admin') {
+		return json({ ok: false, error: 'Forbidden: Admin access required' }, { status: 403 });
+	}
+
+	try {
+		const body = await request.json();
+		const bookId = String(body.bookId ?? '').trim();
+		if (!bookId) {
+			return json({ ok: false, error: 'bookId is required' }, { status: 400 });
+		}
+		await adminDeleteBook(bookId);
+		return json({ ok: true });
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Failed to delete book';
 		return json({ ok: false, error: message }, { status: 400 });
 	}
 };
