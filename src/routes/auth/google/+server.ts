@@ -29,5 +29,5 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		maxAge: 60 * 10
 	});
 
-	redirect(302, authUrl.toString());
+	redirect(302, authUrl.toString(), { external: ['https://accounts.google.com'] });
 };
