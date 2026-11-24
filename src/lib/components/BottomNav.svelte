@@ -20,7 +20,7 @@
 		},
 		{
 			id: "bros",
-			label: "Bros",
+			label: "Bookmates",
 			href: "/bros",
 			match: (path: string) => path.startsWith("/bros"),
 		},

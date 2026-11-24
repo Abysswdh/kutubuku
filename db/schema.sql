@@ -218,3 +218,32 @@ CREATE TABLE reading_challenge
 CREATE INDEX idx_user_book_user_status ON user_book( userID, status );
 CREATE INDEX idx_progress_log_userbook_date ON progress_log( userBookID, logDate );
 CREATE INDEX idx_schedule_day_date ON schedule_day( scheduledDate, status );
+
+-- ============================================================================
+-- Social Bookmates Extension (Friends / Following + Activity Celebrations)
+-- ============================================================================
+
+CREATE TABLE user_bookmate
+(
+    userID CHAR( 10 ) NOT NULL,
+    mateUserID CHAR( 10 ) NOT NULL,
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY( userID, mateUserID ),
+    FOREIGN KEY( userID ) REFERENCES app_user( userID ) ON DELETE CASCADE,
+    FOREIGN KEY( mateUserID ) REFERENCES app_user( userID ) ON DELETE CASCADE,
+    CHECK ( userID <> mateUserID )
+);
+
+CREATE TABLE bookmate_celebration
+(
+    userID CHAR( 10 ) NOT NULL,
+    activityKey VARCHAR( 64 ) NOT NULL,
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY( userID, activityKey ),
+    FOREIGN KEY( userID ) REFERENCES app_user( userID ) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_user_bookmate_mate ON user_bookmate( mateUserID );
+CREATE INDEX idx_bookmate_celebration_key ON bookmate_celebration( activityKey );
