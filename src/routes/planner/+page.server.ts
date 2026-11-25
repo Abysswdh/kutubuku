@@ -10,9 +10,9 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	const userId = locals.user?.userId;
 	const [layoutData, weekDays, weeklyPlan, scheduleDays] = await Promise.all([
 		parent(),
-		fetchWeekDays(),
-		fetchWeeklyPlan(),
-		fetchScheduleDays()
+		fetchWeekDays(userId),
+		fetchWeeklyPlan(userId),
+		fetchScheduleDays(userId)
 	]);
 
 	return {

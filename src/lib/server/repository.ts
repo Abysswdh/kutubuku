@@ -359,16 +359,150 @@ export async function fetchRecentSessions(limit = 5, userId = DEFAULT_USER_ID): 
 	}
 }
 
-export async function fetchWeeklyPlan(): Promise<WeeklyPlanPreview> {
-	return mockGetWeeklyPlan();
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+export async function fetchWeeklyPlan(userId = DEFAULT_USER_ID): Promise<WeeklyPlanPreview> {
+	const sql = getDb();
+	if (!sql) return mockGetWeeklyPlan();
+
+	try {
+		const [sched] = await sql`
+			SELECT
+				rs.scheduleid AS "scheduleId",
+				b.bookid AS "bookId",
+				b.title AS "bookTitle",
+				rs.pagesperdaytarget AS "targetPagesPerDay",
+				rs.estimatedpagesperday AS "estimatedPagesPerDay",
+				TO_CHAR(rs.targetfinishdate, 'YYYY-MM-DD') AS "targetFinishDate",
+				TO_CHAR(rs.predictedfinishdate, 'YYYY-MM-DD') AS "predictedFinishDate"
+			FROM reading_schedule rs
+			JOIN user_book ub ON ub.userbookid = rs.userbookid
+			JOIN book b ON b.bookid = ub.bookid
+			WHERE ub.userid = ${userId} AND rs.status = 'active'
+			ORDER BY rs.createdat DESC
+			LIMIT 1
+		`;
+
+		if (!sched) {
+			return {
+				targetPagesPerDay: 20,
+				recommendedBookTitle: 'No active schedule yet',
+				rationale: 'Pick a book from your shelf below to generate a weekly reading schedule.',
+				projectedWeeklyPages: 0,
+				activeDaysOfWeek: [1, 2, 3, 4, 5, 6, 7]
+			};
+		}
+
+		const scheduleId = String(sched.scheduleId).trim();
+		const dayRows = await sql`
+			SELECT dayofweek AS "dayOfWeek"
+			FROM schedule_reading_day
+			WHERE scheduleid = ${scheduleId}
+			ORDER BY dayofweek ASC
+		`;
+		const activeDays =
+			dayRows.length > 0 ? dayRows.map((d) => Number(d.dayOfWeek)) : [1, 2, 3, 4, 5, 6, 7];
+		const targetPagesPerDay = Number(sched.targetPagesPerDay);
+
+		return {
+			scheduleId,
+			bookId: String(sched.bookId).trim(),
+			targetPagesPerDay,
+			estimatedPagesPerDay: sched.estimatedPagesPerDay
+				? Number(sched.estimatedPagesPerDay)
+				: targetPagesPerDay,
+			targetFinishDate: sched.targetFinishDate ?? undefined,
+			predictedFinishDate: sched.predictedFinishDate ?? undefined,
+			recommendedBookTitle: sched.bookTitle,
+			rationale: `Reading ${targetPagesPerDay} pages across ${activeDays.length} day${activeDays.length === 1 ? '' : 's'}/week for "${sched.bookTitle}".`,
+			projectedWeeklyPages: targetPagesPerDay * activeDays.length,
+			activeDaysOfWeek: activeDays
+		};
+	} catch (err) {
+		console.warn('[kutubuku/db] Failed to fetch weekly plan:', err);
+		return {
+			targetPagesPerDay: 20,
+			recommendedBookTitle: 'No active schedule yet',
+			rationale: 'Pick a book from your shelf below to generate a weekly reading schedule.',
+			projectedWeeklyPages: 0,
+			activeDaysOfWeek: [1, 2, 3, 4, 5, 6, 7]
+		};
+	}
 }
 
-export async function fetchScheduleDays(): Promise<ScheduleDayItem[]> {
-	return mockGetScheduleDays();
+export async function fetchScheduleDays(userId = DEFAULT_USER_ID): Promise<ScheduleDayItem[]> {
+	const sql = getDb();
+	if (!sql) return mockGetScheduleDays();
+
+	try {
+		const rows = await sql`
+			SELECT
+				sd.scheduledayid AS "scheduleDayId",
+				sd.scheduleid AS "scheduleId",
+				TO_CHAR(sd.scheduleddate, 'YYYY-MM-DD') AS "scheduledDate",
+				EXTRACT(DOW FROM sd.scheduleddate)::int AS "dow",
+				b.title AS "bookTitle",
+				sd.targetpages AS "targetPages",
+				sd.status
+			FROM schedule_day sd
+			JOIN reading_schedule rs ON rs.scheduleid = sd.scheduleid
+			JOIN user_book ub ON ub.userbookid = rs.userbookid
+			JOIN book b ON b.bookid = ub.bookid
+			WHERE ub.userid = ${userId} AND rs.status = 'active'
+			ORDER BY sd.scheduleddate ASC
+			LIMIT 14
+		`;
+
+		return rows.map((r) => ({
+			scheduleDayId: String(r.scheduleDayId).trim(),
+			scheduleId: String(r.scheduleId).trim(),
+			scheduledDate: r.scheduledDate,
+			dayName: DAY_NAMES[Number(r.dow)] ?? 'Day',
+			bookTitle: r.bookTitle,
+			targetPages: Number(r.targetPages),
+			status: r.status as ScheduleDayItem['status']
+		}));
+	} catch (err) {
+		console.warn('[kutubuku/db] Failed to fetch schedule days:', err);
+		return [];
+	}
 }
 
-export async function fetchWeekDays(): Promise<WeekDayLog[]> {
-	return mockGetWeekDays();
+export async function fetchWeekDays(userId = DEFAULT_USER_ID): Promise<WeekDayLog[]> {
+	const sql = getDb();
+	if (!sql) return mockGetWeekDays();
+
+	try {
+		const rows = await sql`
+			SELECT
+				TO_CHAR(d::date, 'YYYY-MM-DD') AS "date",
+				EXTRACT(DOW FROM d::date)::int AS "dow",
+				COALESCE(SUM(pl.pagesread), 0)::int AS "pagesRead"
+			FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day') AS d
+			LEFT JOIN progress_log pl
+				ON pl.logdate = d::date
+				AND pl.userbookid IN (SELECT userbookid FROM user_book WHERE userid = ${userId})
+			GROUP BY d::date
+			ORDER BY d::date ASC
+		`;
+
+		return rows.map((r, i) => {
+			const dow = Number(r.dow);
+			const pagesRead = Number(r.pagesRead);
+			return {
+				date: r.date,
+				dayLabel: DAY_LABELS[dow] ?? 'D',
+				dayName: DAY_NAMES[dow] ?? 'Day',
+				pagesRead,
+				hasLogged: pagesRead > 0,
+				isToday: i === rows.length - 1
+			};
+		});
+	} catch (err) {
+		console.warn('[kutubuku/db] Failed to fetch week days:', err);
+		return mockGetWeekDays();
+	}
 }
 
 export async function fetchBroUpdates(): Promise<BroUpdate[]> {
@@ -381,7 +515,12 @@ export async function createBookOnShelf(
 	input: AddBookInput,
 	userId = DEFAULT_USER_ID
 ): Promise<Book> {
-	const created = mockAddBook(input);
+	const cleanIsbn = input.isbn13 ? input.isbn13.replace(/\D/g, '') : '';
+	if (cleanIsbn.length > 0 && cleanIsbn.length !== 13) {
+		throw new Error('ISBN-13 must be exactly 13 digits (or leave blank).');
+	}
+
+	const created = mockAddBook({ ...input, isbn13: cleanIsbn || undefined });
 	const sql = getDb();
 	if (!sql) return created;
 
@@ -394,7 +533,7 @@ export async function createBookOnShelf(
 
 		await sql`
 			INSERT INTO book (bookid, publisherid, title, isbn13, pagecount, description, verificationstatus)
-			VALUES (${bookId}, 'PU00000001', ${created.title}, ${created.isbn13 ?? null}, ${created.totalPages}, ${created.genre ?? 'General'}, 'pending')
+			VALUES (${bookId}, 'PU00000001', ${created.title}, ${cleanIsbn || null}, ${created.totalPages}, ${created.genre ?? 'General'}, 'pending')
 		`;
 
 		if (created.author && created.author !== 'Unknown Author') {
@@ -517,8 +656,128 @@ export async function removeBookFromShelf(bookId: string, userId = DEFAULT_USER_
 	`;
 }
 
-export async function createReadingSchedule(input: GenerateScheduleInput) {
-	return mockGenerateSchedule(input);
+export async function createReadingSchedule(
+	input: GenerateScheduleInput,
+	userId = DEFAULT_USER_ID
+) {
+	const sql = getDb();
+	if (!sql) return mockGenerateSchedule(input);
+
+	const [ub] = await sql`
+		SELECT
+			ub.userbookid AS "userBookId",
+			ub.currentpage AS "currentPage",
+			b.bookid AS "bookId",
+			b.title,
+			b.pagecount AS "pageCount",
+			TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AS "todayStr"
+		FROM user_book ub
+		JOIN book b ON b.bookid = ub.bookid
+		WHERE ub.userid = ${userId} AND (TRIM(ub.bookid) = ${input.bookId} OR TRIM(ub.userbookid) = ${input.bookId})
+		LIMIT 1
+	`;
+	if (!ub) {
+		throw new Error('Selected book not found on your shelf.');
+	}
+
+	const userBookId = String(ub.userBookId).trim();
+	const targetPages = Math.max(1, Math.min(500, Math.round(input.targetPagesPerDay)));
+	const rawDays = (input.activeDaysOfWeek ?? [1, 2, 3, 4, 5, 6, 7])
+		.map((d) => Math.round(d))
+		.filter((d) => d >= 1 && d <= 7);
+	const activeDays = [...new Set(rawDays)].sort((a, b) => a - b);
+	if (activeDays.length === 0) activeDays.push(1, 2, 3, 4, 5, 6, 7);
+
+	const remainingPages = Math.max(1, Number(ub.pageCount) - Number(ub.currentPage));
+	const sessionsNeeded = Math.ceil(remainingPages / targetPages);
+
+	const cursor = new Date(`${ub.todayStr}T00:00:00Z`);
+	const upcomingDates: string[] = [];
+	let matchedCount = 0;
+	let finishDateStr = String(ub.todayStr);
+
+	for (let offset = 0; offset < 3650 && matchedCount < sessionsNeeded; offset++) {
+		const isoDay = cursor.getUTCDay() === 0 ? 7 : cursor.getUTCDay();
+		if (activeDays.includes(isoDay)) {
+			const isoDate = cursor.toISOString().split('T')[0];
+			if (upcomingDates.length < 7) {
+				upcomingDates.push(isoDate);
+			}
+			matchedCount++;
+			finishDateStr = isoDate;
+		}
+		cursor.setUTCDate(cursor.getUTCDate() + 1);
+	}
+
+	await sql`
+		UPDATE reading_schedule
+		SET status = 'cancelled'
+		WHERE userbookid = ${userBookId} AND status = 'active'
+	`;
+
+	const [rsMax] = await sql`
+		SELECT COALESCE(MAX(SUBSTRING(scheduleid FROM 3)::int), 0) AS max_num FROM reading_schedule
+	`;
+	const scheduleId = `RS${String(Number(rsMax?.max_num ?? 0) + 1).padStart(8, '0')}`;
+
+	await sql`
+		INSERT INTO reading_schedule (
+			scheduleid, userbookid, startdate, targetfinishdate,
+			pagesperdaytarget, estimatedpagesperday, predictedfinishdate, status
+		)
+		VALUES (
+			${scheduleId}, ${userBookId}, ${ub.todayStr}, ${finishDateStr},
+			${targetPages}, ${targetPages}, ${finishDateStr}, 'active'
+		)
+	`;
+
+	for (const dayOfWeek of activeDays) {
+		await sql`
+			INSERT INTO schedule_reading_day (scheduleid, dayofweek)
+			VALUES (${scheduleId}, ${dayOfWeek})
+			ON CONFLICT DO NOTHING
+		`;
+	}
+
+	const [sdMax] = await sql`
+		SELECT COALESCE(MAX(SUBSTRING(scheduledayid FROM 3)::int), 0) AS max_num FROM schedule_day
+	`;
+	let nextSdNum = Number(sdMax?.max_num ?? 0) + 1;
+
+	for (const scheduledDate of upcomingDates) {
+		const scheduleDayId = `SD${String(nextSdNum++).padStart(8, '0')}`;
+		await sql`
+			INSERT INTO schedule_day (scheduleDayID, scheduleID, scheduledDate, targetPages, status)
+			VALUES (${scheduleDayId}, ${scheduleId}, ${scheduledDate}, ${targetPages}, 'pending')
+		`;
+	}
+
+	return {
+		scheduleId,
+		targetFinishDate: finishDateStr,
+		scheduledDays: upcomingDates.length,
+		rationale: input.rationale
+	};
+}
+
+export async function updateScheduleDayStatus(
+	scheduleDayId: string,
+	status: 'pending' | 'completed' | 'missed',
+	userId = DEFAULT_USER_ID
+): Promise<void> {
+	const sql = getDb();
+	if (!sql) return;
+
+	await sql`
+		UPDATE schedule_day
+		SET status = ${status}
+		WHERE scheduledayid = ${scheduleDayId.trim()}
+		  AND EXISTS (
+			SELECT 1 FROM reading_schedule rs
+			JOIN user_book ub ON ub.userbookid = rs.userbookid
+			WHERE rs.scheduleid = schedule_day.scheduleid AND ub.userid = ${userId}
+		  )
+	`;
 }
 
 export async function createReadingSession(

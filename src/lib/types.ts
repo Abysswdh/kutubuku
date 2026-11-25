@@ -156,6 +156,7 @@ export interface Badge {
  */
 export interface WeeklyPlanPreview {
 	scheduleId?: string;
+	bookId?: string;
 	targetPagesPerDay: number;
 	estimatedPagesPerDay?: number;
 	targetFinishDate?: string;
@@ -163,6 +164,7 @@ export interface WeeklyPlanPreview {
 	recommendedBookTitle: string;
 	rationale: string;
 	projectedWeeklyPages: number;
+	activeDaysOfWeek?: number[];
 }
 
 /**

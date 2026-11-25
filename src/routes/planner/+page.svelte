@@ -19,13 +19,18 @@
 
 	// Interactive Schedule Generator + BYOK Gemini State
 	let showScheduleGenerator = $state(false);
-	let selectedBookId = $state('book-1');
+	let selectedBookId = $state('');
 	let customDailyPages = $state(28);
+	let selectedDays = $state<number[]>([1, 2, 3, 4, 5, 6, 7]);
+	let daysInitialized = $state(false);
 	let geminiKey = $state(
 		typeof window !== 'undefined' ? localStorage.getItem('kutubuku_gemini_key') ?? '' : ''
 	);
 	let isGeneratingSchedule = $state(false);
+	let busyDayId = $state<string | null>(null);
 	let scheduleToast = $state<string | null>(null);
+	let aiRationaleNote = $state<string | null>(null);
+	let plannerError = $state<string | null>(null);
 
 	// Interactive Add Book Modal State
 	let showAddBook = $state(false);
@@ -38,6 +43,16 @@
 	let newStatus = $state<'reading' | 'want_to_read'>('want_to_read');
 	let isAddingBook = $state(false);
 
+	const weekDayOptions = [
+		{ day: 1, label: 'Mon' },
+		{ day: 2, label: 'Tue' },
+		{ day: 3, label: 'Wed' },
+		{ day: 4, label: 'Thu' },
+		{ day: 5, label: 'Fri' },
+		{ day: 6, label: 'Sat' },
+		{ day: 7, label: 'Sun' }
+	] as const;
+
 	const dropReasonLabels: Record<string, string> = {
 		too_many_books: 'Dropped: Too Many Books',
 		overwhelmed: 'Dropped: Overwhelmed',
@@ -45,10 +60,39 @@
 		other: 'Dropped'
 	};
 
+	$effect(() => {
+		if (!selectedBookId || !shelfQueue.some((b) => b.id === selectedBookId)) {
+			const preferred = weeklyPlan.bookId && shelfQueue.some((b) => b.id === weeklyPlan.bookId)
+				? weeklyPlan.bookId
+				: shelfQueue[0]?.id ?? '';
+			selectedBookId = preferred;
+		}
+		if (!daysInitialized && weeklyPlan.activeDaysOfWeek?.length) {
+			selectedDays = [...weeklyPlan.activeDaysOfWeek];
+			customDailyPages = weeklyPlan.targetPagesPerDay || 20;
+			daysInitialized = true;
+		}
+	});
+
+	function togglePreferredDay(day: number) {
+		if (selectedDays.includes(day)) {
+			if (selectedDays.length <= 1) return;
+			selectedDays = selectedDays.filter((d) => d !== day);
+		} else {
+			selectedDays = [...selectedDays, day].sort((a, b) => a - b);
+		}
+	}
+
 	async function handleGenerateSchedule(e: SubmitEvent) {
 		e.preventDefault();
+		if (!selectedBookId) {
+			plannerError = 'Add a book to your shelf before generating a schedule.';
+			return;
+		}
+
 		isGeneratingSchedule = true;
 		scheduleToast = null;
+		plannerError = null;
 
 		try {
 			if (typeof window !== 'undefined') {
@@ -70,21 +114,49 @@
 				body: JSON.stringify({
 					bookId: selectedBookId,
 					targetPagesPerDay: Number(customDailyPages),
+					activeDaysOfWeek: selectedDays,
 					geminiApiKey: geminiKey.trim() || undefined,
 					bookTitle: targetBook?.title,
 					remainingPages
 				})
 			});
 			const json = await res.json();
-			if (json.ok) {
-				await invalidateAll();
-				showScheduleGenerator = false;
-				scheduleToast = json.usedAi
-					? '✨ Generated smart weekly schedule with Gemini AI!'
-					: '📅 Updated weekly reading schedule & daily targets!';
+			if (!json.ok) {
+				plannerError = json.error ?? 'Failed to generate schedule.';
+				return;
 			}
+
+			aiRationaleNote = json.rationale ?? null;
+			await invalidateAll();
+			showScheduleGenerator = false;
+			scheduleToast = json.usedAi
+				? '✨ Generated smart weekly schedule with Gemini AI!'
+				: '📅 Saved weekly reading schedule & daily targets to Supabase!';
 		} finally {
 			isGeneratingSchedule = false;
+		}
+	}
+
+	async function handleToggleDayStatus(scheduleDayId: string, currentStatus: 'pending' | 'completed' | 'missed') {
+		if (busyDayId) return;
+		busyDayId = scheduleDayId;
+		plannerError = null;
+		const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+
+		try {
+			const res = await fetch('/api/schedule', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ scheduleDayId, status: nextStatus })
+			});
+			const json = await res.json();
+			if (!json.ok) {
+				plannerError = json.error ?? 'Could not update schedule day.';
+				return;
+			}
+			await invalidateAll();
+		} finally {
+			busyDayId = null;
 		}
 	}
 
@@ -92,6 +164,7 @@
 		e.preventDefault();
 		if (!newTitle.trim() || !newAuthor.trim()) return;
 		isAddingBook = true;
+		plannerError = null;
 
 		try {
 			const res = await fetch('/api/books', {
@@ -108,15 +181,18 @@
 				})
 			});
 			const json = await res.json();
-			if (json.ok) {
-				await invalidateAll();
-				newTitle = '';
-				newAuthor = '';
-				newPublisher = '';
-				newIsbn13 = '';
-				showAddBook = false;
-				scheduleToast = `📚 Added "${json.book.title}" to your shelf (${json.book.status === 'reading' ? 'Reading' : 'Planned'})!`;
+			if (!json.ok) {
+				plannerError = json.error ?? 'Could not add book.';
+				return;
 			}
+
+			await invalidateAll();
+			newTitle = '';
+			newAuthor = '';
+			newPublisher = '';
+			newIsbn13 = '';
+			showAddBook = false;
+			scheduleToast = `📚 Added "${json.book.title}" to your shelf (${json.book.status === 'reading' ? 'Reading' : 'Planned'})!`;
 		} finally {
 			isAddingBook = false;
 		}
@@ -135,6 +211,20 @@
 			📚 {activeReadingCount} / {maxConcurrent} Active Limit
 		</span>
 	</div>
+
+	{#if plannerError}
+		<div class="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+			<span>⚠️ {plannerError}</span>
+			<button
+				type="button"
+				onclick={() => (plannerError = null)}
+				class="ml-2 hover:opacity-70"
+				aria-label="Close error"
+			>
+				✕
+			</button>
+		</div>
+	{/if}
 
 	{#if scheduleToast}
 		<div class="flex items-center justify-between rounded-2xl border border-reward-muted bg-reward-subtle px-4 py-3 text-xs font-bold text-reward-text">
@@ -157,32 +247,44 @@
 	<section class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-3">
 		<div class="flex items-center justify-between">
 			<span class="rounded-lg bg-accent-subtle px-2.5 py-1 text-xs font-extrabold text-accent uppercase">
-				Active Schedule
+				{weeklyPlan.scheduleId ? 'Active Schedule' : 'No Schedule Yet'}
 			</span>
 			<span class="text-xs font-bold text-zinc-400">
 				~{weeklyPlan.projectedWeeklyPages} pages / week
 			</span>
 		</div>
 
-		<div>
-			<h2 class="text-lg font-extrabold text-zinc-900">
-				{weeklyPlan.targetPagesPerDay} pages per day
-			</h2>
-			<p class="mt-1 text-xs text-zinc-600 leading-relaxed">
-				{weeklyPlan.rationale}
-			</p>
-		</div>
+		{#if weeklyPlan.scheduleId}
+			<div>
+				<p class="text-[11px] font-extrabold tracking-wider text-accent uppercase">
+					{weeklyPlan.recommendedBookTitle}
+				</p>
+				<h2 class="text-lg font-extrabold text-zinc-900">
+					{weeklyPlan.targetPagesPerDay} pages per day
+				</h2>
+				<p class="mt-1 text-xs text-zinc-600 leading-relaxed">
+					{aiRationaleNote ?? weeklyPlan.rationale}
+				</p>
+			</div>
 
-		<div class="grid grid-cols-2 gap-2 pt-1 text-xs">
-			<div class="rounded-xl bg-zinc-50 px-3 py-2">
-				<span class="block text-[10px] font-bold text-zinc-400 uppercase">Target Finish</span>
-				<span class="font-extrabold text-zinc-900">{weeklyPlan.targetFinishDate ?? '2026-10-31'}</span>
+			<div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+				<div class="rounded-xl bg-zinc-50 px-3 py-2">
+					<span class="block text-[10px] font-bold text-zinc-400 uppercase">Target Finish</span>
+					<span class="font-extrabold text-zinc-900">{weeklyPlan.targetFinishDate ?? '—'}</span>
+				</div>
+				<div class="rounded-xl bg-zinc-50 px-3 py-2">
+					<span class="block text-[10px] font-bold text-zinc-400 uppercase">Predicted Pace</span>
+					<span class="font-extrabold text-zinc-900">{weeklyPlan.estimatedPagesPerDay ?? weeklyPlan.targetPagesPerDay} pg/day</span>
+				</div>
 			</div>
-			<div class="rounded-xl bg-zinc-50 px-3 py-2">
-				<span class="block text-[10px] font-bold text-zinc-400 uppercase">Predicted Pace</span>
-				<span class="font-extrabold text-zinc-900">{weeklyPlan.estimatedPagesPerDay ?? 26.5} pg/day</span>
+		{:else}
+			<div>
+				<h2 class="text-base font-extrabold text-zinc-900">Plan your reading week</h2>
+				<p class="mt-1 text-xs text-zinc-500 leading-relaxed">
+					{weeklyPlan.rationale}
+				</p>
 			</div>
-		</div>
+		{/if}
 
 		<div class="pt-2">
 			<button
@@ -190,7 +292,7 @@
 				onclick={() => (showScheduleGenerator = !showScheduleGenerator)}
 				class="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border-2 border-zinc-200 bg-zinc-50 px-4 py-2 text-xs font-extrabold text-zinc-700 transition-colors hover:bg-zinc-100"
 			>
-				<span>{showScheduleGenerator ? 'Hide Schedule Generator' : '✨ Customize / Generate AI Schedule'}</span>
+				<span>{showScheduleGenerator ? 'Hide Schedule Generator' : '✨ Customize / Generate Schedule'}</span>
 			</button>
 		</div>
 
@@ -198,15 +300,21 @@
 			<form onsubmit={handleGenerateSchedule} class="mt-3 space-y-3 border-t border-zinc-100 pt-3 text-xs">
 				<div>
 					<label for="sched-book" class="block font-bold text-zinc-700">Focus Book</label>
-					<select
-						id="sched-book"
-						bind:value={selectedBookId}
-						class="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900"
-					>
-						{#each shelfQueue as b (b.id)}
-							<option value={b.id}>{b.title} ({b.totalPages - b.currentPage} pg left)</option>
-						{/each}
-					</select>
+					{#if shelfQueue.length === 0}
+						<p class="mt-1 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-zinc-500">
+							No active books on your shelf yet — add one below first.
+						</p>
+					{:else}
+						<select
+							id="sched-book"
+							bind:value={selectedBookId}
+							class="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900"
+						>
+							{#each shelfQueue as b (b.id)}
+								<option value={b.id}>{b.title} ({Math.max(0, b.totalPages - b.currentPage)} pg left)</option>
+							{/each}
+						</select>
+					{/if}
 				</div>
 
 				<div>
@@ -220,6 +328,24 @@
 						required
 						class="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900"
 					/>
+				</div>
+
+				<div>
+					<span class="block font-bold text-zinc-700">Preferred Reading Days</span>
+					<div class="mt-1.5 grid grid-cols-7 gap-1.5">
+						{#each weekDayOptions as opt (opt.day)}
+							{@const active = selectedDays.includes(opt.day)}
+							<button
+								type="button"
+								onclick={() => togglePreferredDay(opt.day)}
+								class="rounded-xl border-2 py-2 text-[11px] font-extrabold transition {active
+									? 'border-accent bg-accent-subtle text-accent'
+									: 'border-zinc-200 bg-white text-zinc-400 hover:border-zinc-300'}"
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
 				</div>
 
 				<div>
@@ -237,7 +363,7 @@
 
 				<button
 					type="submit"
-					disabled={isGeneratingSchedule}
+					disabled={isGeneratingSchedule || shelfQueue.length === 0}
 					class="flex min-h-[42px] w-full items-center justify-center rounded-xl bg-accent px-4 py-2 text-xs font-extrabold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
 				>
 					{isGeneratingSchedule ? 'Generating Schedule...' : 'Generate Weekly Schedule'}
@@ -256,23 +382,33 @@
 			<div class="h-px flex-1 bg-zinc-200"></div>
 		</div>
 
-		<div class="space-y-2">
-			{#each scheduleDays as day (day.scheduleDayId)}
-				<div class="flex items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-xs">
-					<div>
-						<span class="font-extrabold text-zinc-900">{day.dayName} • {day.bookTitle}</span>
-						<p class="text-[11px] text-zinc-400">{day.scheduledDate} • Target: {day.targetPages} pages</p>
+		{#if scheduleDays.length === 0}
+			<div class="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-5 text-center text-xs font-semibold text-zinc-400">
+				Generate a schedule above to create your upcoming daily reading targets.
+			</div>
+		{:else}
+			<div class="space-y-2">
+				{#each scheduleDays as day (day.scheduleDayId)}
+					<div class="flex items-center justify-between rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-xs">
+						<div>
+							<span class="font-extrabold text-zinc-900">{day.dayName} • {day.bookTitle}</span>
+							<p class="text-[11px] text-zinc-400">{day.scheduledDate} • Target: {day.targetPages} pages</p>
+						</div>
+						<button
+							type="button"
+							disabled={busyDayId === day.scheduleDayId}
+							onclick={() => handleToggleDayStatus(day.scheduleDayId, day.status)}
+							title="Click to toggle completed/pending"
+							class="rounded-lg border px-2.5 py-1 text-[11px] font-extrabold uppercase transition disabled:opacity-50 {day.status === 'completed'
+								? 'border-reward-muted bg-reward-subtle text-reward-text hover:opacity-80'
+								: 'border-zinc-200 bg-zinc-100 text-zinc-600 hover:border-accent hover:text-accent'}"
+						>
+							{day.status === 'completed' ? '✓ Completed' : day.status}
+						</button>
 					</div>
-					<span
-						class="rounded-lg px-2.5 py-1 text-[11px] font-extrabold uppercase {day.status === 'completed'
-							? 'bg-reward-subtle text-reward-text'
-							: 'bg-zinc-100 text-zinc-500'}"
-					>
-						{day.status}
-					</span>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</section>
 
 	<!-- Reading Queue & Tsundoku Shelf (user_book table) -->

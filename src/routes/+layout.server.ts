@@ -23,7 +23,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const [stats, dailyGoal, weeklyPlan, recentSessions, books] = await Promise.all([
 		fetchUserStats(userId),
 		fetchDailyGoal(userId),
-		fetchWeeklyPlan(),
+		fetchWeeklyPlan(userId),
 		fetchRecentSessions(5, userId),
 		fetchBooks(userId)
 	]);

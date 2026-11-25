@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	const userId = locals.user.userId;
 	const [layoutData, weekDays, badges] = await Promise.all([
 		parent(),
-		fetchWeekDays(),
+		fetchWeekDays(userId),
 		fetchBadges(userId)
 	]);
 
