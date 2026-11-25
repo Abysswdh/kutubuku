@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 	let profile = $derived(data.profile);
 </script>
 
@@ -17,11 +20,11 @@
 			</div>
 			<div class="min-w-0 flex-1">
 				<span class="rounded-md bg-accent-subtle px-2 py-0.5 text-[10px] font-extrabold text-accent-text uppercase">
-					Public Reader Card
+					{t(lang, 'Kartu Pembaca Publik', 'Public Reader Card')}
 				</span>
 				<h1 class="mt-1 truncate text-xl font-black text-zinc-900">{profile.userName}</h1>
 				<p class="text-xs font-semibold text-zinc-400">
-					Level {profile.currentLevel} · Joined {profile.memberSince}
+					Level {profile.currentLevel} · {t(lang, 'Bergabung', 'Joined')} {profile.memberSince}
 				</p>
 			</div>
 		</div>
@@ -39,7 +42,9 @@
 				<div class="text-lg font-black text-zinc-900">
 					📚 {profile.books.filter((b) => b.status === 'finished').length}
 				</div>
-				<div class="text-[11px] font-bold text-zinc-400 uppercase">Finished</div>
+				<div class="text-[11px] font-bold text-zinc-400 uppercase">
+					{t(lang, 'Selesai', 'Finished')}
+				</div>
 			</div>
 		</div>
 	</section>
@@ -48,16 +53,20 @@
 		<section class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-3">
 			<div class="flex items-center justify-between">
 				<h2 class="text-sm font-extrabold text-zinc-900">
-					🏆 {profile.challenge.year} Reading Challenge
+					🏆 {t(lang, `Tantangan Baca ${profile.challenge.year}`, `${profile.challenge.year} Reading Challenge`)}
 				</h2>
 				<span class="rounded-lg bg-reward-subtle px-2.5 py-0.5 text-[11px] font-extrabold text-reward-text">
-					{profile.challenge.completedBooks} / {profile.challenge.targetBooks} Books
+					{profile.challenge.completedBooks} / {profile.challenge.targetBooks} {t(lang, 'Buku', 'Books')}
 				</span>
 			</div>
 			<ProgressBar
 				value={profile.challenge.completedBooks}
 				max={profile.challenge.targetBooks}
-				sublabel="{profile.challenge.completedBooks} of {profile.challenge.targetBooks} books finished"
+				sublabel={t(
+					lang,
+					`${profile.challenge.completedBooks} dari ${profile.challenge.targetBooks} buku selesai`,
+					`${profile.challenge.completedBooks} of ${profile.challenge.targetBooks} books finished`
+				)}
 				heightClass="h-2"
 			/>
 		</section>
@@ -66,7 +75,7 @@
 	{#if profile.badges.length > 0}
 		<section class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-3">
 			<h2 class="text-xs font-extrabold tracking-wider text-zinc-400 uppercase">
-				Unlocked Badges ({profile.badges.length})
+				{t(lang, 'Lencana Terbuka', 'Unlocked Badges')} ({profile.badges.length})
 			</h2>
 			<div class="flex flex-wrap gap-2">
 				{#each profile.badges as badge (badge.id)}
@@ -81,7 +90,7 @@
 	{#if profile.books.length > 0}
 		<section class="space-y-3">
 			<h2 class="text-xs font-extrabold tracking-wider text-zinc-400 uppercase">
-				Public Bookshelf
+				{t(lang, 'Rak Buku Publik', 'Public Bookshelf')}
 			</h2>
 			<div class="space-y-2.5">
 				{#each profile.books as book (book.bookId)}
@@ -96,13 +105,15 @@
 									? 'bg-accent-subtle text-accent-text'
 									: 'bg-reward-subtle text-reward-text'}"
 							>
-								{book.status === 'finished' ? 'Finished' : 'Reading'}
+								{book.status === 'finished'
+									? t(lang, 'Selesai', 'Finished')
+									: t(lang, 'Dibaca', 'Reading')}
 							</span>
 						</div>
 						<ProgressBar
 							value={book.currentPage}
 							max={book.totalPages}
-							sublabel="{book.currentPage} / {book.totalPages} pages"
+							sublabel="{book.currentPage} / {book.totalPages} {t(lang, 'halaman', 'pages')}"
 							heightClass="h-1.5"
 						/>
 					</div>
@@ -114,13 +125,13 @@
 	{#if !data.isLoggedIn}
 		<section class="rounded-2xl border-2 border-accent/30 bg-accent-subtle p-5 text-center space-y-2.5">
 			<p class="text-sm font-extrabold text-accent-text">
-				Want to build your own reading streak?
+				{t(lang, 'Ingin mulai membangun streak bacamu sendiri?', 'Want to build your own reading streak?')}
 			</p>
 			<a
 				href="/auth"
 				class="inline-block rounded-xl bg-accent px-5 py-2.5 text-xs font-extrabold text-white transition hover:bg-accent-hover"
 			>
-				Join Kutubuku Free →
+				{t(lang, 'Gabung Kutubuku Gratis →', 'Join Kutubuku Free →')}
 			</a>
 		</section>
 	{/if}

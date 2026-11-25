@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 	let activeTab = $state<'feed' | 'leaderboard' | 'find'>('feed');
 	let searchQuery = $state('');
 	let busyKey = $state<string | null>(null);
@@ -65,7 +68,7 @@
 	<div class="flex items-center justify-between">
 		<h1 class="text-xl font-extrabold tracking-tight text-zinc-900">Sobat</h1>
 		<span class="rounded-lg bg-accent-subtle px-2.5 py-1 text-xs font-extrabold text-accent-text">
-			{followingCount} following
+			{followingCount} {t(lang, 'mengikuti', 'following')}
 		</span>
 	</div>
 
@@ -78,7 +81,7 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Feed
+			{t(lang, 'Aktivitas', 'Feed')}
 		</button>
 		<button
 			type="button"
@@ -87,7 +90,7 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Leaderboard
+			{t(lang, 'Peringkat', 'Leaderboard')}
 		</button>
 		<button
 			type="button"
@@ -96,19 +99,20 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Find
+			{t(lang, 'Cari', 'Find')}
 		</button>
 	</div>
 
 	{#if activeTab === 'feed'}
-		<!-- Activity Feed -->
 		{#if feed.length === 0}
 			<section class="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-6 text-center space-y-3">
 				<div class="text-3xl" aria-hidden="true">📚</div>
 				<div class="space-y-1">
-					<h2 class="text-sm font-extrabold text-zinc-900">Your sobat feed is quiet</h2>
+					<h2 class="text-sm font-extrabold text-zinc-900">
+						{t(lang, 'Kabar sobat masih sepi', 'Your sobat feed is quiet')}
+					</h2>
 					<p class="text-xs font-medium text-zinc-500">
-						Follow a few sobat or log a reading session to see updates here.
+						{t(lang, 'Ikuti beberapa sobat atau catat sesi bacamu untuk melihat pembaruan di sini.', 'Follow a few sobat or log a reading session to see updates here.')}
 					</p>
 				</div>
 				<button
@@ -116,7 +120,7 @@
 					onclick={() => (activeTab = 'find')}
 					class="rounded-xl bg-accent px-4 py-2 text-xs font-extrabold text-white transition hover:bg-accent-hover"
 				>
-					Find Sobat →
+					{t(lang, 'Cari Sobat →', 'Find Sobat →')}
 				</button>
 			</section>
 		{:else}
@@ -138,7 +142,7 @@
 											{item.userName}
 											{#if item.isSelf}
 												<span class="ml-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500">
-													You
+													{t(lang, 'Kamu', 'You')}
 												</span>
 											{/if}
 										</h2>
@@ -170,7 +174,7 @@
 									: 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:translate-y-0.5'}"
 							>
 								<span aria-hidden="true">🎉</span>
-								<span>{item.hasCelebrated ? 'Celebrated' : 'Celebrate'}</span>
+								<span>{item.hasCelebrated ? t(lang, 'Dirayakan', 'Celebrated') : t(lang, 'Rayakan', 'Celebrate')}</span>
 							</button>
 
 							<div class="flex items-center gap-1.5 text-xs font-bold text-zinc-400">
@@ -188,11 +192,10 @@
 			</div>
 		{/if}
 	{:else if activeTab === 'leaderboard'}
-		<!-- Weekly Leaderboard -->
 		<section class="space-y-3">
 			<div class="flex items-center justify-between px-1">
 				<h2 class="text-xs font-extrabold tracking-wider text-zinc-400 uppercase">
-					Last 7 Days · Your Circle
+					{t(lang, '7 Hari Terakhir · Lingkaranmu', 'Last 7 Days · Your Circle')}
 				</h2>
 				{#if followingCount === 0}
 					<button
@@ -200,7 +203,7 @@
 						onclick={() => (activeTab = 'find')}
 						class="text-xs font-extrabold text-accent hover:underline"
 					>
-						+ Add sobat
+						{t(lang, '+ Tambah sobat', '+ Add sobat')}
 					</button>
 				{/if}
 			</div>
@@ -227,36 +230,35 @@
 								<div class="truncate text-sm font-extrabold text-zinc-900">
 									{row.userName}
 									{#if row.isSelf}
-										<span class="ml-1 text-[11px] font-bold text-accent">(You)</span>
+										<span class="ml-1 text-[11px] font-bold text-accent">({t(lang, 'Kamu', 'You')})</span>
 									{/if}
 								</div>
 								<div class="text-xs font-semibold text-zinc-400">
-									🔥 {row.streakDays}d streak · 📚 {row.booksFinished} finished
+									🔥 {row.streakDays}{t(lang, 'h', 'd')} streak · 📚 {row.booksFinished} {t(lang, 'selesai', 'finished')}
 								</div>
 							</div>
 						</div>
 
 						<div class="text-right shrink-0 pl-3">
-							<div class="text-sm font-black text-zinc-900">{row.weeklyPages}p</div>
-							<div class="text-[10px] font-bold text-zinc-400 uppercase">7d pages</div>
+							<div class="text-sm font-black text-zinc-900">{row.weeklyPages} {t(lang, 'hlm', 'p')}</div>
+							<div class="text-[10px] font-bold text-zinc-400 uppercase">{t(lang, '7h halaman', '7d pages')}</div>
 						</div>
 					</div>
 				{/each}
 			</div>
 		</section>
 	{:else}
-		<!-- Find Sobat -->
 		<section class="space-y-3.5">
 			<input
 				type="search"
 				bind:value={searchQuery}
-				placeholder="Search sobat by name or email..."
+				placeholder={t(lang, 'Cari sobat pakai nama atau email...', 'Search sobat by name or email...')}
 				class="w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 focus:border-accent focus:outline-none"
 			/>
 
 			{#if filteredDirectory.length === 0}
 				<div class="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-6 text-center text-xs font-bold text-zinc-400">
-					No sobat matched “{searchQuery}”.
+					{t(lang, `Tidak ada sobat yang cocok dengan “${searchQuery}”.`, `No sobat matched “${searchQuery}”.`)}
 				</div>
 			{:else}
 				<div class="space-y-2.5">
@@ -273,11 +275,11 @@
 								<div class="min-w-0">
 									<div class="truncate text-sm font-extrabold text-zinc-900">{mate.userName}</div>
 									<div class="truncate text-xs font-semibold text-zinc-400">
-										🔥 {mate.streakDays}d · 📚 {mate.booksFinished} finished
+										🔥 {mate.streakDays}{t(lang, 'h', 'd')} · 📚 {mate.booksFinished} {t(lang, 'selesai', 'finished')}
 									</div>
 									{#if mate.currentBookTitle}
 										<div class="truncate text-[11px] font-bold text-accent">
-											Reading: {mate.currentBookTitle}
+											{t(lang, 'Membaca:', 'Reading:')} {mate.currentBookTitle}
 										</div>
 									{/if}
 								</div>
@@ -291,7 +293,7 @@
 									? 'border-accent/30 bg-accent-subtle text-accent hover:border-red-200 hover:bg-red-50 hover:text-red-600'
 									: 'border-accent bg-accent text-white hover:bg-accent-hover'}"
 							>
-								{mate.isFollowing ? 'Following ✓' : '+ Follow'}
+								{mate.isFollowing ? t(lang, 'Mengikuti ✓', 'Following ✓') : t(lang, '+ Ikuti', '+ Follow')}
 							</button>
 						</div>
 					{/each}

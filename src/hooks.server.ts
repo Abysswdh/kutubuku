@@ -1,8 +1,10 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
+import { LANG_COOKIE, normalizeLang } from '$lib/i18n';
 import { clearSessionCookie, findUserById, readSessionUserId } from '$lib/server/auth';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	event.locals.lang = normalizeLang(event.cookies.get(LANG_COOKIE));
 	const userId = readSessionUserId(event.cookies);
 
 	if (userId) {

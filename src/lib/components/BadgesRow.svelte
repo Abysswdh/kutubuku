@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import type { Badge } from '$lib/types';
 
 	interface Props {
@@ -6,15 +8,16 @@
 	}
 
 	let { badges }: Props = $props();
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 </script>
 
 <div class="space-y-2">
 	<div class="flex items-center justify-between px-1">
 		<h2 class="text-xs font-bold tracking-wider text-zinc-700 uppercase">
-			Badges & Milestones
+			{t(lang, 'Lencana & Pencapaian', 'Badges & Milestones')}
 		</h2>
 		<span class="text-xs text-zinc-500">
-			{badges.filter((b) => b.isUnlocked).length} / {badges.length} Unlocked
+			{badges.filter((b) => b.isUnlocked).length} / {badges.length} {t(lang, 'Terbuka', 'Unlocked')}
 		</span>
 	</div>
 
@@ -124,7 +127,7 @@
 				<div class="mt-1.5 flex items-center gap-1">
 					{#if badge.isUnlocked}
 						<span class="inline-flex items-center text-[10px] font-semibold text-reward">
-							Unlocked
+							{t(lang, 'Terbuka', 'Unlocked')}
 						</span>
 					{:else}
 						<span class="inline-flex items-center gap-0.5 text-[10px] text-zinc-400">
@@ -141,7 +144,7 @@
 								<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
 								<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 							</svg>
-							Locked
+							{t(lang, 'Terkunci', 'Locked')}
 						</span>
 					{/if}
 				</div>

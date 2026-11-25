@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import type { WeekDayLog } from '$lib/types';
 
 	interface Props {
@@ -6,6 +8,7 @@
 	}
 
 	let { days }: Props = $props();
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 </script>
 
 <div class="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-xs">
@@ -25,10 +28,12 @@
 					d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"
 				/>
 			</svg>
-			<h3 class="text-xs font-semibold tracking-wide text-zinc-700 uppercase">This Week</h3>
+			<h3 class="text-xs font-semibold tracking-wide text-zinc-700 uppercase">
+				{t(lang, 'Minggu Ini', 'This Week')}
+			</h3>
 		</div>
 		<span class="text-xs text-zinc-500">
-			{days.filter((d) => d.hasLogged).length} of 7 days logged
+			{days.filter((d) => d.hasLogged).length} {t(lang, 'dari 7 hari tercatat', 'of 7 days logged')}
 		</span>
 	</div>
 

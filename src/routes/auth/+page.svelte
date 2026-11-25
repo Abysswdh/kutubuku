@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 	let mode = $state<'register' | 'login'>('register');
 	let submitting = $state(false);
 
@@ -12,13 +15,24 @@
 		}
 	});
 
-	const oauthErrorMessages: Record<string, string> = {
-		google_not_configured: 'Google Sign-In is not configured yet. Add GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET to .env.',
-		google_failed: 'Google Sign-In could not be completed. Please try again.'
-	};
+	let oauthErrorMessages = $derived<Record<string, string>>({
+		google_not_configured: t(
+			lang,
+			'Masuk dengan Google belum dikonfigurasi.',
+			'Google Sign-In is not configured yet. Add GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET to .env.'
+		),
+		google_failed: t(
+			lang,
+			'Masuk dengan Google gagal diselesaikan. Silakan coba lagi.',
+			'Google Sign-In could not be completed. Please try again.'
+		)
+	});
 
 	let bannerError = $derived(
-		form?.error ?? (data.oauthError ? (oauthErrorMessages[data.oauthError] ?? 'Authentication failed.') : null)
+		form?.error ??
+			(data.oauthError
+				? (oauthErrorMessages[data.oauthError] ?? t(lang, 'Autentikasi gagal.', 'Authentication failed.'))
+				: null)
 	);
 </script>
 
@@ -27,7 +41,7 @@
 	<div class="text-center space-y-2.5">
 		<img src="/brand/logo-full-teal.svg" alt="Kutubuku" class="mx-auto h-11 w-auto" />
 		<p class="text-sm font-semibold text-zinc-500">
-			Build a daily reading streak with the books you already own.
+			{t(lang, 'Bangun kebiasaan baca harian dengan buku yang sudah kamu miliki.', 'Build a daily reading streak with the books you already own.')}
 		</p>
 	</div>
 
@@ -42,7 +56,7 @@
 					? 'bg-white text-zinc-900 shadow-xs'
 					: 'text-zinc-500 hover:text-zinc-700'}"
 			>
-				Create Account
+				{t(lang, 'Buat Akun', 'Create Account')}
 			</button>
 			<button
 				type="button"
@@ -51,7 +65,7 @@
 					? 'bg-white text-zinc-900 shadow-xs'
 					: 'text-zinc-500 hover:text-zinc-700'}"
 			>
-				Sign In
+				{t(lang, 'Masuk', 'Sign In')}
 			</button>
 		</div>
 
@@ -80,7 +94,7 @@
 							d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
 						/>
 					</svg>
-					<span>Continue with Google</span>
+					<span>{t(lang, 'Lanjut dengan Google', 'Continue with Google')}</span>
 				</a>
 			{:else}
 				<button
@@ -88,14 +102,16 @@
 					disabled
 					class="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-extrabold text-zinc-400"
 				>
-					<span>Continue with Google (setup pending)</span>
+					<span>{t(lang, 'Lanjut dengan Google (belum aktif)', 'Continue with Google (setup pending)')}</span>
 				</button>
 			{/if}
 		</div>
 
 		<div class="flex items-center gap-3">
 			<div class="h-px flex-1 bg-zinc-200"></div>
-			<span class="text-[11px] font-extrabold tracking-wider text-zinc-400 uppercase">or with email</span>
+			<span class="text-[11px] font-extrabold tracking-wider text-zinc-400 uppercase">
+				{t(lang, 'atau pakai email', 'or with email')}
+			</span>
 			<div class="h-px flex-1 bg-zinc-200"></div>
 		</div>
 
@@ -114,7 +130,9 @@
 		>
 			{#if mode === 'register'}
 				<label class="block space-y-1">
-					<span class="text-xs font-extrabold text-zinc-700">Username</span>
+					<span class="text-xs font-extrabold text-zinc-700">
+						{t(lang, 'Nama Pengguna', 'Username')}
+					</span>
 					<input
 						type="text"
 						name="userName"
@@ -122,7 +140,7 @@
 						minlength="2"
 						maxlength="100"
 						value={form && 'userName' in form ? (form.userName ?? '') : ''}
-						placeholder="e.g. Putra Adiwijaya"
+						placeholder={t(lang, 'mis. Putra Adiwijaya', 'e.g. Putra Adiwijaya')}
 						class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
 					/>
 				</label>
@@ -135,19 +153,23 @@
 					name="userEmail"
 					required
 					value={form?.userEmail ?? ''}
-					placeholder="you@example.com"
+					placeholder="kamu@contoh.com"
 					class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
 				/>
 			</label>
 
 			<label class="block space-y-1">
-				<span class="text-xs font-extrabold text-zinc-700">Password</span>
+				<span class="text-xs font-extrabold text-zinc-700">
+					{t(lang, 'Kata Sandi', 'Password')}
+				</span>
 				<input
 					type="password"
 					name="password"
 					required
 					minlength={mode === 'register' ? 6 : 1}
-					placeholder={mode === 'register' ? 'At least 6 characters' : 'Your password'}
+					placeholder={mode === 'register'
+						? t(lang, 'Minimal 6 karakter', 'At least 6 characters')
+						: t(lang, 'Kata sandimu', 'Your password')}
 					class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm font-semibold text-zinc-900 focus:border-accent focus:bg-white focus:outline-none"
 				/>
 			</label>
@@ -158,9 +180,13 @@
 				class="w-full rounded-xl bg-accent px-4 py-3 text-sm font-extrabold text-white transition hover:bg-accent-hover disabled:opacity-60 active:translate-y-px"
 			>
 				{#if submitting}
-					{mode === 'register' ? 'Creating account...' : 'Signing in...'}
+					{mode === 'register'
+						? t(lang, 'Membuat akun...', 'Creating account...')
+						: t(lang, 'Masuk...', 'Signing in...')}
 				{:else}
-					{mode === 'register' ? 'Start Reading Journey →' : 'Sign In'}
+					{mode === 'register'
+						? t(lang, 'Mulai Perjalanan Baca →', 'Start Reading Journey →')
+						: t(lang, 'Masuk', 'Sign In')}
 				{/if}
 			</button>
 		</form>

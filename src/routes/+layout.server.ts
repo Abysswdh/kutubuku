@@ -10,6 +10,7 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		return {
+			lang: locals.lang,
 			user: null,
 			stats: null,
 			dailyGoal: null,
@@ -29,6 +30,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	]);
 
 	return {
+		lang: locals.lang,
 		user: locals.user,
 		stats,
 		dailyGoal,

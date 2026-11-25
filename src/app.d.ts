@@ -4,6 +4,7 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
+			lang: 'id' | 'en';
 			user: {
 				userId: string;
 				userName: string;
@@ -14,7 +15,9 @@ declare global {
 				onboarded: boolean;
 			} | null;
 		}
-		// interface PageData {}
+		interface PageData {
+			lang?: 'id' | 'en';
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import type { Book } from '$lib/types';
 	import BookCover from './BookCover.svelte';
 	import ProgressBar from './ProgressBar.svelte';
@@ -10,6 +12,7 @@
 
 	let { book, showLogButton = true }: Props = $props();
 
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 	let progressPercent = $derived(
 		book.totalPages <= 0 ? 0 : Math.round((book.currentPage / book.totalPages) * 100)
 	);
@@ -31,7 +34,7 @@
 		<div class="flex min-w-0 flex-1 flex-col">
 			<div class="flex items-center justify-between gap-2">
 				<span class="text-xs font-semibold text-zinc-500">
-					{book.genre || 'Reading'}
+					{book.genre || t(lang, 'Umum', 'Reading')}
 				</span>
 				<span class="text-xs font-bold text-zinc-900">{progressPercent}%</span>
 			</div>
@@ -47,7 +50,11 @@
 				<ProgressBar
 					value={book.currentPage}
 					max={book.totalPages}
-					sublabel="Page {book.currentPage} of {book.totalPages}"
+					sublabel={t(
+						lang,
+						`Halaman ${book.currentPage} dari ${book.totalPages}`,
+						`Page ${book.currentPage} of ${book.totalPages}`
+					)}
 					heightClass="h-2"
 				/>
 			</div>
@@ -59,9 +66,9 @@
 			<a
 				href="/books/{book.id}"
 				class="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
-				aria-label="View book details and log session for {book.title}"
+				aria-label="{t(lang, 'Detail & catat sesi untuk', 'View book details and log session for')} {book.title}"
 			>
-				Continue reading
+				{t(lang, 'Lanjut Baca', 'Continue reading')}
 			</a>
 		</div>
 	{/if}

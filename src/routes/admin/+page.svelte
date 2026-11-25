@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import { t, type Lang } from '$lib/i18n';
 	import type { AdminBadgeRow, CatalogBook, VerificationStatus } from '$lib/server/catalog';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
+	let lang = $derived<Lang>(page.data.lang === 'en' ? 'en' : 'id');
 	let activeTab = $state<'queue' | 'catalog' | 'users' | 'badges'>('queue');
 	let busyId = $state<string | null>(null);
 	let feedback = $state<string | null>(null);
@@ -12,7 +15,6 @@
 
 	let pendingBooks = $derived(data.books.filter((b) => b.verificationStatus === 'pending'));
 
-	// Catalog search & status filter
 	let catalogSearch = $state('');
 	let catalogFilter = $state<'all' | VerificationStatus>('all');
 	let showCreateForm = $state(false);
@@ -30,7 +32,6 @@
 		});
 	});
 
-	// Shared inline edit + delete confirmation state
 	let editingBookId = $state<string | null>(null);
 	let editTitle = $state('');
 	let editAuthor = $state('');
@@ -40,7 +41,6 @@
 	let editPages = $state(250);
 	let confirmDeleteId = $state<string | null>(null);
 
-	// Official book creation state
 	let newTitle = $state('');
 	let newAuthor = $state('');
 	let newPublisher = $state('');
@@ -49,7 +49,6 @@
 	let newPages = $state('300');
 	let isCreating = $state(false);
 
-	// Badge creation state
 	let badgeName = $state('');
 	let badgeDesc = $state('');
 	let badgeCriteriaType = $state<AdminBadgeRow['criteriaType']>('streak_days');
@@ -92,11 +91,11 @@
 			});
 			const json = await res.json();
 			if (!json.ok) {
-				errorMsg = json.error ?? 'Moderation failed.';
+				errorMsg = json.error ?? t(lang, 'Moderasi gagal.', 'Moderation failed.');
 				return;
 			}
 			editingBookId = null;
-			feedback = `Updated ${bookId} (${status.toUpperCase()}).`;
+			feedback = t(lang, `${bookId} diperbarui (${status.toUpperCase()}).`, `Updated ${bookId} (${status.toUpperCase()}).`);
 			await invalidateAll();
 		} finally {
 			busyId = null;
@@ -115,12 +114,12 @@
 			});
 			const json = await res.json();
 			if (!json.ok) {
-				errorMsg = json.error ?? 'Could not delete book.';
+				errorMsg = json.error ?? t(lang, 'Gagal menghapus buku.', 'Could not delete book.');
 				return;
 			}
 			confirmDeleteId = null;
 			editingBookId = null;
-			feedback = `Permanently deleted ${bookId} from database.`;
+			feedback = t(lang, `${bookId} dihapus permanen dari database.`, `Permanently deleted ${bookId} from database.`);
 			await invalidateAll();
 		} finally {
 			busyId = null;
@@ -147,7 +146,7 @@
 			});
 			const json = await res.json();
 			if (!json.ok) {
-				errorMsg = json.error ?? 'Failed to add official book.';
+				errorMsg = json.error ?? t(lang, 'Gagal menambahkan buku resmi.', 'Failed to add official book.');
 				return;
 			}
 			newTitle = '';
@@ -157,7 +156,7 @@
 			newIsbn = '';
 			newPages = '300';
 			showCreateForm = false;
-			feedback = `Added verified book ${json.bookId} to Master Catalog!`;
+			feedback = t(lang, `Buku terverifikasi ${json.bookId} ditambahkan ke Katalog!`, `Added verified book ${json.bookId} to Master Catalog!`);
 			await invalidateAll();
 		} finally {
 			isCreating = false;
@@ -177,10 +176,10 @@
 			});
 			const json = await res.json();
 			if (!json.ok) {
-				errorMsg = json.error ?? 'Failed to update role.';
+				errorMsg = json.error ?? t(lang, 'Gagal mengubah peran.', 'Failed to update role.');
 				return;
 			}
-			feedback = `Updated ${userId} role to ${nextRole.toUpperCase()}.`;
+			feedback = t(lang, `Peran ${userId} diubah ke ${nextRole.toUpperCase()}.`, `Updated ${userId} role to ${nextRole.toUpperCase()}.`);
 			await invalidateAll();
 		} finally {
 			busyId = null;
@@ -205,13 +204,13 @@
 			});
 			const json = await res.json();
 			if (!json.ok) {
-				errorMsg = json.error ?? 'Failed to create badge.';
+				errorMsg = json.error ?? t(lang, 'Gagal membuat lencana.', 'Failed to create badge.');
 				return;
 			}
 			badgeName = '';
 			badgeDesc = '';
 			badgeCriteriaValue = '7';
-			feedback = `Created badge ${json.badgeId}!`;
+			feedback = t(lang, `Lencana ${json.badgeId} berhasil dibuat!`, `Created badge ${json.badgeId}!`);
 			await invalidateAll();
 		} finally {
 			isCreatingBadge = false;
@@ -230,11 +229,11 @@
 			});
 			const json = await res.json();
 			if (!json.ok) {
-				errorMsg = json.error ?? 'Failed to delete badge.';
+				errorMsg = json.error ?? t(lang, 'Gagal menghapus lencana.', 'Failed to delete badge.');
 				return;
 			}
 			confirmDeleteId = null;
-			feedback = `Deleted badge ${badgeId}.`;
+			feedback = t(lang, `Lencana ${badgeId} dihapus.`, `Deleted badge ${badgeId}.`);
 			await invalidateAll();
 		} finally {
 			busyId = null;
@@ -245,10 +244,10 @@
 <div class="space-y-5">
 	<div>
 		<span class="rounded-md bg-reward-subtle px-2 py-0.5 text-[10px] font-extrabold text-reward-text uppercase">
-			Admin Moderator
+			{t(lang, 'Moderator Admin', 'Admin Moderator')}
 		</span>
 		<h1 class="mt-1 text-xl font-extrabold tracking-tight text-zinc-900">
-			Platform Control
+			{t(lang, 'Kontrol Platform', 'Platform Control')}
 		</h1>
 	</div>
 
@@ -256,19 +255,19 @@
 	<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
 		<div class="rounded-2xl border-2 border-zinc-200 bg-white p-3.5 text-center">
 			<div class="text-lg font-black text-reward">{data.stats.pendingBooks}</div>
-			<div class="text-[10px] font-bold text-zinc-400 uppercase">Pending</div>
+			<div class="text-[10px] font-bold text-zinc-400 uppercase">{t(lang, 'Menunggu', 'Pending')}</div>
 		</div>
 		<div class="rounded-2xl border-2 border-zinc-200 bg-white p-3.5 text-center">
 			<div class="text-lg font-black text-accent">{data.stats.verifiedBooks}</div>
-			<div class="text-[10px] font-bold text-zinc-400 uppercase">Verified</div>
+			<div class="text-[10px] font-bold text-zinc-400 uppercase">{t(lang, 'Terverifikasi', 'Verified')}</div>
 		</div>
 		<div class="rounded-2xl border-2 border-zinc-200 bg-white p-3.5 text-center">
 			<div class="text-lg font-black text-zinc-900">{data.stats.totalUsers}</div>
-			<div class="text-[10px] font-bold text-zinc-400 uppercase">Readers</div>
+			<div class="text-[10px] font-bold text-zinc-400 uppercase">{t(lang, 'Pembaca', 'Readers')}</div>
 		</div>
 		<div class="rounded-2xl border-2 border-zinc-200 bg-white p-3.5 text-center">
 			<div class="text-lg font-black text-zinc-900">{data.stats.totalPagesLogged}</div>
-			<div class="text-[10px] font-bold text-zinc-400 uppercase">Pages Logged</div>
+			<div class="text-[10px] font-bold text-zinc-400 uppercase">{t(lang, 'Halaman Tercatat', 'Pages Logged')}</div>
 		</div>
 	</div>
 
@@ -292,7 +291,7 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Queue ({pendingBooks.length})
+			{t(lang, 'Antrean', 'Queue')} ({pendingBooks.length})
 		</button>
 		<button
 			type="button"
@@ -301,7 +300,7 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Catalog ({data.books.length})
+			{t(lang, 'Katalog', 'Catalog')} ({data.books.length})
 		</button>
 		<button
 			type="button"
@@ -310,7 +309,7 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Users ({data.users.length})
+			{t(lang, 'Pengguna', 'Users')} ({data.users.length})
 		</button>
 		<button
 			type="button"
@@ -319,7 +318,7 @@
 				? 'bg-accent text-white'
 				: 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}"
 		>
-			Badges ({data.badges.length})
+			{t(lang, 'Lencana', 'Badges')} ({data.badges.length})
 		</button>
 	</div>
 
@@ -327,9 +326,11 @@
 		{#if pendingBooks.length === 0}
 			<div class="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-6 text-center space-y-1.5">
 				<div class="text-2xl" aria-hidden="true">✅</div>
-				<p class="text-sm font-extrabold text-zinc-800">Moderation queue is clear!</p>
+				<p class="text-sm font-extrabold text-zinc-800">
+					{t(lang, 'Antrean moderasi bersih!', 'Moderation queue is clear!')}
+				</p>
 				<p class="text-xs font-medium text-zinc-400">
-					User-submitted books will appear here for you to verify, edit, or delete.
+					{t(lang, 'Buku kiriman pengguna akan muncul di sini untuk diverifikasi, diedit, atau dihapus.', 'User-submitted books will appear here for you to verify, edit, or delete.')}
 				</p>
 			</div>
 		{:else}
@@ -339,11 +340,11 @@
 						<div class="flex items-start justify-between gap-3">
 							<div class="min-w-0">
 								<span class="rounded-md bg-reward-subtle px-2 py-0.5 text-[10px] font-extrabold text-reward-text uppercase">
-									Pending · {book.bookId}
+									{t(lang, 'Menunggu', 'Pending')} · {book.bookId}
 								</span>
 								<h2 class="mt-1 text-sm font-extrabold text-zinc-900">{book.title}</h2>
 								<p class="text-xs font-semibold text-zinc-500">
-									{book.author} · {book.publisher} · {book.genre} · {book.pageCount}p
+									{book.author} · {book.publisher} · {book.genre} · {book.pageCount}{t(lang, ' hlm', 'p')}
 								</p>
 							</div>
 							<button
@@ -351,18 +352,18 @@
 								onclick={() => (editingBookId === book.bookId ? (editingBookId = null) : startEdit(book))}
 								class="shrink-0 rounded-lg border border-zinc-200 px-2.5 py-1 text-xs font-bold text-zinc-600 hover:bg-zinc-50"
 							>
-								{editingBookId === book.bookId ? 'Close' : 'Edit'}
+								{editingBookId === book.bookId ? t(lang, 'Tutup', 'Close') : 'Edit'}
 							</button>
 						</div>
 
 						{#if editingBookId === book.bookId}
 							<div class="grid grid-cols-2 gap-2 border-t border-zinc-100 pt-3">
-								<input type="text" bind:value={editTitle} placeholder="Title" class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="text" bind:value={editAuthor} placeholder="Author" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="text" bind:value={editPublisher} placeholder="Publisher" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editTitle} placeholder={t(lang, 'Judul', 'Title')} class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editAuthor} placeholder={t(lang, 'Penulis', 'Author')} class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editPublisher} placeholder={t(lang, 'Penerbit', 'Publisher')} class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
 								<input type="text" bind:value={editGenre} placeholder="Genre" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="number" min="1" bind:value={editPages} placeholder="Pages" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="text" bind:value={editIsbn} placeholder="ISBN-13 (13 digits, optional)" class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="number" min="1" bind:value={editPages} placeholder={t(lang, 'Halaman', 'Pages')} class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editIsbn} placeholder={t(lang, 'ISBN-13 (13 digit, opsional)', 'ISBN-13 (13 digits, optional)')} class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
 							</div>
 						{/if}
 
@@ -373,7 +374,7 @@
 								onclick={() => moderate(book.bookId, 'verified', editingBookId === book.bookId)}
 								class="flex-1 rounded-xl bg-accent py-2 text-xs font-extrabold text-white hover:bg-accent-hover disabled:opacity-50"
 							>
-								✓ Approve & Verify
+								✓ {t(lang, 'Setujui & Verifikasi', 'Approve & Verify')}
 							</button>
 							<button
 								type="button"
@@ -381,7 +382,7 @@
 								onclick={() => moderate(book.bookId, 'rejected')}
 								class="rounded-xl border-2 border-zinc-200 bg-white px-3 py-2 text-xs font-extrabold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
 							>
-								Reject
+								{t(lang, 'Tolak', 'Reject')}
 							</button>
 							{#if confirmDeleteId === book.bookId}
 								<button
@@ -390,14 +391,14 @@
 									onclick={() => deleteBookPermanently(book.bookId)}
 									class="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700"
 								>
-									Confirm Delete
+									{t(lang, 'Yakin Hapus', 'Confirm Delete')}
 								</button>
 								<button
 									type="button"
 									onclick={() => (confirmDeleteId = null)}
 									class="rounded-xl border border-zinc-200 px-2.5 py-2 text-xs font-bold text-zinc-500"
 								>
-									Cancel
+									{t(lang, 'Batal', 'Cancel')}
 								</button>
 							{:else}
 								<button
@@ -405,7 +406,7 @@
 									onclick={() => (confirmDeleteId = book.bookId)}
 									class="rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2 text-xs font-extrabold text-red-600 hover:bg-red-100"
 								>
-									Delete
+									{t(lang, 'Hapus', 'Delete')}
 								</button>
 							{/if}
 						</div>
@@ -415,12 +416,11 @@
 		{/if}
 	{:else if activeTab === 'catalog'}
 		<div class="space-y-3.5">
-			<!-- Search + Official Book Button -->
 			<div class="flex gap-2">
 				<input
 					type="search"
 					bind:value={catalogSearch}
-					placeholder="Search title, author, or book ID..."
+					placeholder={t(lang, 'Cari judul, penulis, atau ID buku...', 'Search title, author, or book ID...')}
 					class="flex-1 rounded-2xl border-2 border-zinc-200 bg-white px-4 py-2 text-xs font-semibold focus:border-accent focus:outline-none"
 				/>
 				<button
@@ -430,7 +430,7 @@
 						? 'border-zinc-200 bg-white text-zinc-600'
 						: 'border-accent bg-accent text-white hover:bg-accent-hover'}"
 				>
-					{showCreateForm ? 'Close' : '+ Official Book'}
+					{showCreateForm ? t(lang, 'Tutup', 'Close') : t(lang, '+ Buku Resmi', '+ Official Book')}
 				</button>
 			</div>
 
@@ -439,26 +439,27 @@
 					onsubmit={handleCreateOfficial}
 					class="rounded-2xl border-2 border-accent/30 bg-white p-5 space-y-3"
 				>
-					<h2 class="text-sm font-extrabold text-zinc-900">Add Official Verified Book</h2>
-					<input type="text" required bind:value={newTitle} placeholder="Book title *" class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3.5 py-2 text-sm font-semibold focus:border-accent focus:bg-white focus:outline-none" />
+					<h2 class="text-sm font-extrabold text-zinc-900">
+						{t(lang, 'Tambah Buku Resmi Terverifikasi', 'Add Official Verified Book')}
+					</h2>
+					<input type="text" required bind:value={newTitle} placeholder={t(lang, 'Judul buku *', 'Book title *')} class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3.5 py-2 text-sm font-semibold focus:border-accent focus:bg-white focus:outline-none" />
 					<div class="grid grid-cols-2 gap-2.5">
-						<input type="text" required bind:value={newAuthor} placeholder="Author *" class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
-						<input type="text" required bind:value={newPublisher} placeholder="Publisher *" class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
+						<input type="text" required bind:value={newAuthor} placeholder={t(lang, 'Penulis *', 'Author *')} class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
+						<input type="text" required bind:value={newPublisher} placeholder={t(lang, 'Penerbit *', 'Publisher *')} class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
 						<input type="text" required bind:value={newGenre} placeholder="Genre *" class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
-						<input type="number" min="1" required bind:value={newPages} placeholder="Page count *" class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
+						<input type="number" min="1" required bind:value={newPages} placeholder={t(lang, 'Jumlah halaman *', 'Page count *')} class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
 					</div>
-					<input type="text" bind:value={newIsbn} placeholder="ISBN-13 (13 digits, optional)" class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
+					<input type="text" bind:value={newIsbn} placeholder={t(lang, 'ISBN-13 (13 digit, opsional)', 'ISBN-13 (13 digits, optional)')} class="w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none" />
 					<button
 						type="submit"
 						disabled={isCreating}
 						class="w-full rounded-xl bg-accent py-2.5 text-xs font-extrabold text-white uppercase hover:bg-accent-hover disabled:opacity-50"
 					>
-						{isCreating ? 'Adding book...' : '+ Publish Verified Book'}
+						{isCreating ? t(lang, 'Menambahkan...', 'Adding book...') : t(lang, '+ Terbitkan Buku Terverifikasi', '+ Publish Verified Book')}
 					</button>
 				</form>
 			{/if}
 
-			<!-- Status filter pills -->
 			<div class="flex gap-1.5">
 				{#each ['all', 'verified', 'pending', 'rejected'] as f (f)}
 					<button
@@ -468,7 +469,13 @@
 							? 'border-accent bg-accent text-white'
 							: 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300'}"
 					>
-						{f}
+						{f === 'all'
+							? t(lang, 'Semua', 'All')
+							: f === 'verified'
+								? t(lang, 'Terverifikasi', 'Verified')
+								: f === 'pending'
+									? t(lang, 'Menunggu', 'Pending')
+									: t(lang, 'Ditolak', 'Rejected')}
 					</button>
 				{/each}
 			</div>
@@ -488,7 +495,7 @@
 									>
 										{book.verificationStatus}
 									</span>
-									<span class="text-[11px] font-bold text-zinc-400">{book.bookId} · {book.pageCount}p</span>
+									<span class="text-[11px] font-bold text-zinc-400">{book.bookId} · {book.pageCount}{t(lang, ' hlm', 'p')}</span>
 								</div>
 								<div class="mt-0.5 truncate text-sm font-extrabold text-zinc-900">{book.title}</div>
 								<div class="truncate text-xs font-semibold text-zinc-500">
@@ -502,7 +509,7 @@
 									onclick={() => (editingBookId === book.bookId ? (editingBookId = null) : startEdit(book))}
 									class="rounded-xl border border-zinc-200 px-2.5 py-1.5 text-xs font-bold text-zinc-600 hover:bg-zinc-50"
 								>
-									{editingBookId === book.bookId ? 'Close' : 'Edit'}
+									{editingBookId === book.bookId ? t(lang, 'Tutup', 'Close') : 'Edit'}
 								</button>
 								{#if book.verificationStatus !== 'verified'}
 									<button
@@ -511,7 +518,7 @@
 										onclick={() => moderate(book.bookId, 'verified')}
 										class="rounded-xl bg-accent px-2.5 py-1.5 text-xs font-extrabold text-white hover:bg-accent-hover disabled:opacity-50"
 									>
-										Verify
+										{t(lang, 'Verifikasi', 'Verify')}
 									</button>
 								{:else}
 									<button
@@ -520,7 +527,7 @@
 										onclick={() => moderate(book.bookId, 'pending')}
 										class="rounded-xl border border-zinc-200 px-2.5 py-1.5 text-xs font-bold text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
 									>
-										Unverify
+										{t(lang, 'Batal Verif', 'Unverify')}
 									</button>
 								{/if}
 								{#if confirmDeleteId === book.bookId}
@@ -530,7 +537,7 @@
 										onclick={() => deleteBookPermanently(book.bookId)}
 										class="rounded-xl bg-red-600 px-2.5 py-1.5 text-xs font-extrabold text-white hover:bg-red-700"
 									>
-										Confirm
+										{t(lang, 'Yakin', 'Confirm')}
 									</button>
 									<button
 										type="button"
@@ -545,7 +552,7 @@
 										onclick={() => (confirmDeleteId = book.bookId)}
 										class="rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-extrabold text-red-600 hover:bg-red-100"
 									>
-										Delete
+										{t(lang, 'Hapus', 'Delete')}
 									</button>
 								{/if}
 							</div>
@@ -553,19 +560,19 @@
 
 						{#if editingBookId === book.bookId}
 							<div class="grid grid-cols-2 gap-2 border-t border-zinc-100 pt-3">
-								<input type="text" bind:value={editTitle} placeholder="Title" class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="text" bind:value={editAuthor} placeholder="Author" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="text" bind:value={editPublisher} placeholder="Publisher" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editTitle} placeholder={t(lang, 'Judul', 'Title')} class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editAuthor} placeholder={t(lang, 'Penulis', 'Author')} class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editPublisher} placeholder={t(lang, 'Penerbit', 'Publisher')} class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
 								<input type="text" bind:value={editGenre} placeholder="Genre" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="number" min="1" bind:value={editPages} placeholder="Pages" class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
-								<input type="text" bind:value={editIsbn} placeholder="ISBN-13 (13 digits, optional)" class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="number" min="1" bind:value={editPages} placeholder={t(lang, 'Halaman', 'Pages')} class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
+								<input type="text" bind:value={editIsbn} placeholder={t(lang, 'ISBN-13 (13 digit, opsional)', 'ISBN-13 (13 digits, optional)')} class="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold" />
 								<button
 									type="button"
 									disabled={busyId === book.bookId}
 									onclick={() => moderate(book.bookId, book.verificationStatus, true)}
 									class="col-span-2 rounded-xl bg-accent py-2 text-xs font-extrabold text-white hover:bg-accent-hover disabled:opacity-50"
 								>
-									Save Book Edits
+									{t(lang, 'Simpan Perubahan Buku', 'Save Book Edits')}
 								</button>
 							</div>
 						{/if}
@@ -594,11 +601,11 @@
 						<div class="truncate text-sm font-extrabold text-zinc-900">
 							{u.userName}
 							{#if u.userId === data.currentUserId}
-								<span class="text-xs font-bold text-accent">(You)</span>
+								<span class="text-xs font-bold text-accent">({t(lang, 'Kamu', 'You')})</span>
 							{/if}
 						</div>
 						<div class="truncate text-xs font-semibold text-zinc-500">
-							{u.userEmail} · 🔥 {u.streakDays}d · 📚 {u.booksCount} books
+							{u.userEmail} · 🔥 {u.streakDays}{t(lang, 'h', 'd')} · 📚 {u.booksCount} {t(lang, 'buku', 'books')}
 						</div>
 					</div>
 
@@ -607,7 +614,7 @@
 							href="/u/{u.userId}"
 							class="rounded-xl border border-zinc-200 px-2.5 py-1.5 text-xs font-bold text-zinc-600 hover:bg-zinc-50"
 						>
-							Profile
+							{t(lang, 'Profil', 'Profile')}
 						</a>
 						<button
 							type="button"
@@ -617,7 +624,7 @@
 								? 'border-zinc-200 bg-white text-zinc-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
 								: 'border-accent bg-accent text-white hover:bg-accent-hover'}"
 						>
-							{u.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+							{u.role === 'admin' ? t(lang, 'Cabut Admin', 'Revoke Admin') : t(lang, 'Jadikan Admin', 'Make Admin')}
 						</button>
 					</div>
 				</div>
@@ -625,41 +632,42 @@
 		</div>
 	{:else}
 		<div class="space-y-4">
-			<!-- Create Badge Form -->
 			<form
 				onsubmit={handleCreateBadge}
 				class="rounded-2xl border-2 border-zinc-200 bg-white p-5 space-y-3"
 			>
-				<h2 class="text-sm font-extrabold text-zinc-900">+ Create Achievement Badge</h2>
+				<h2 class="text-sm font-extrabold text-zinc-900">
+					{t(lang, '+ Buat Lencana Pencapaian', '+ Create Achievement Badge')}
+				</h2>
 				<div class="grid grid-cols-2 gap-2.5">
 					<input
 						type="text"
 						required
 						bind:value={badgeName}
-						placeholder="Badge name (e.g. Century Club)"
+						placeholder={t(lang, 'Nama lencana (mis. Klub 100 Halaman)', 'Badge name (e.g. Century Club)')}
 						class="col-span-2 rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none"
 					/>
 					<input
 						type="text"
 						required
 						bind:value={badgeDesc}
-						placeholder="Description"
+						placeholder={t(lang, 'Deskripsi', 'Description')}
 						class="col-span-2 rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none"
 					/>
 					<select
 						bind:value={badgeCriteriaType}
 						class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-bold text-zinc-800 focus:border-accent focus:bg-white focus:outline-none"
 					>
-						<option value="streak_days">Streak Days</option>
-						<option value="books_finished">Books Finished</option>
-						<option value="pages_read">Pages Read</option>
+						<option value="streak_days">{t(lang, 'Hari Streak', 'Streak Days')}</option>
+						<option value="books_finished">{t(lang, 'Buku Selesai', 'Books Finished')}</option>
+						<option value="pages_read">{t(lang, 'Halaman Dibaca', 'Pages Read')}</option>
 					</select>
 					<input
 						type="number"
 						min="1"
 						required
 						bind:value={badgeCriteriaValue}
-						placeholder="Target value"
+						placeholder={t(lang, 'Nilai target', 'Target value')}
 						class="rounded-xl border-2 border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold focus:border-accent focus:bg-white focus:outline-none"
 					/>
 				</div>
@@ -668,7 +676,7 @@
 					disabled={isCreatingBadge}
 					class="w-full rounded-xl bg-accent py-2.5 text-xs font-extrabold text-white uppercase hover:bg-accent-hover disabled:opacity-50"
 				>
-					{isCreatingBadge ? 'Creating...' : '+ Add Badge'}
+					{isCreatingBadge ? t(lang, 'Membuat...', 'Creating...') : t(lang, '+ Tambah Lencana', '+ Add Badge')}
 				</button>
 			</form>
 
@@ -681,7 +689,7 @@
 									{badge.criteriaType.replace('_', ' ')} ≥ {badge.criteriaValue}
 								</span>
 								<span class="text-[11px] font-bold text-zinc-400">
-									{badge.badgeId} · {badge.unlockedCount} unlocked
+									{badge.badgeId} · {badge.unlockedCount} {t(lang, 'terbuka', 'unlocked')}
 								</span>
 							</div>
 							<div class="mt-0.5 truncate text-sm font-extrabold text-zinc-900">🏅 {badge.badgeName}</div>
@@ -697,7 +705,7 @@
 										onclick={() => deleteBadge(badge.badgeId)}
 										class="rounded-xl bg-red-600 px-2.5 py-1.5 text-xs font-extrabold text-white"
 									>
-										Confirm
+										{t(lang, 'Yakin', 'Confirm')}
 									</button>
 									<button
 										type="button"
@@ -713,7 +721,7 @@
 									onclick={() => (confirmDeleteId = badge.badgeId)}
 									class="rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-extrabold text-red-600 hover:bg-red-100"
 								>
-									Delete
+									{t(lang, 'Hapus', 'Delete')}
 								</button>
 							{/if}
 						</div>
